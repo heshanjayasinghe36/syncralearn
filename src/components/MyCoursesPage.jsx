@@ -34,10 +34,18 @@ const courseLevels = [
   },
 ];
 
+const courseStatuses = [
+  { value: "active", label: "Activate" },
+  { value: "hold", label: "Hold" },
+  { value: "draft", label: "Set as draft" },
+];
+
 export default function MyCoursesPage({
   teacherProfile,
   modalOpen,
   onModalOpenChange,
+  onCourseCreated,
+  onEditLessons,
 }) {
   const [courses, setCourses] = useState([]);
   const [courseName, setCourseName] = useState("");
@@ -45,9 +53,12 @@ export default function MyCoursesPage({
   const [level, setLevel] = useState("beginner");
   const [imageFile, setImageFile] = useState(null);
   const [levelMenuOpen, setLevelMenuOpen] = useState(false);
+  const [activeCourseMenuId, setActiveCourseMenuId] = useState(null);
+  const [editingCourse, setEditingCourse] = useState(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const isEditingCourse = Boolean(editingCourse);
 
   useEffect(() => {
     let ignore = false;
@@ -94,7 +105,26 @@ export default function MyCoursesPage({
     setLevel("beginner");
     setImageFile(null);
     setLevelMenuOpen(false);
+    setEditingCourse(null);
     setMessage("");
+  }
+
+  function openCreateCourseModal() {
+    resetForm();
+    setActiveCourseMenuId(null);
+    onModalOpenChange(true);
+  }
+
+  function openEditCourseModal(course) {
+    setEditingCourse(course);
+    setCourseName(course.title || "");
+    setDescription(course.description || "");
+    setLevel(course.level || "beginner");
+    setImageFile(null);
+    setLevelMenuOpen(false);
+    setActiveCourseMenuId(null);
+    setMessage("");
+    onModalOpenChange(true);
   }
 
   function closeModal() {
@@ -106,7 +136,7 @@ export default function MyCoursesPage({
     resetForm();
   }
 
-  async function handleCreateCourse(event) {
+  async function handleSaveCourse(event) {
     event.preventDefault();
 
     const name = courseName.trim();
@@ -131,7 +161,7 @@ export default function MyCoursesPage({
     setSaving(true);
     setMessage("");
 
-    let imageUrl = null;
+    let imageUrl = editingCourse?.imgUrl || null;
 
     if (imageFile) {
       const safeFileName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -157,6 +187,44 @@ export default function MyCoursesPage({
       imageUrl = publicData.publicUrl || null;
     }
 
+    if (isEditingCourse) {
+      if (!editingCourse?.cid) {
+        setMessage("Course ID was not found.");
+        setSaving(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("course")
+        .update({
+          name,
+          description: cleanDescription || null,
+          level,
+          img_url: imageUrl,
+        })
+        .eq("cid", editingCourse.cid)
+        .eq("tid", teacherProfile.tid)
+        .select("cid, name, description, level, status, img_url")
+        .single();
+
+      if (error) {
+        setMessage(`Course update failed: ${error.message}`);
+        setSaving(false);
+        return;
+      }
+
+      const updatedCourse = mapCourseRowToCard(data);
+      setCourses((currentCourses) =>
+        currentCourses.map((course) =>
+          course.id === updatedCourse.id ? updatedCourse : course
+        )
+      );
+      setSaving(false);
+      onModalOpenChange(false);
+      resetForm();
+      return;
+    }
+
     const { data, error } = await supabase
       .from("course")
       .insert({
@@ -176,19 +244,95 @@ export default function MyCoursesPage({
       return;
     }
 
-    setCourses((currentCourses) => [
-      mapCourseRowToCard({
-        cid: data?.cid || name,
-        name: data?.name || name,
-        level: data?.level || level,
-        status: data?.status || "draft",
-        img_url: data?.img_url || imageUrl,
-      }),
-      ...currentCourses,
-    ]);
+    const createdCourse = mapCourseRowToCard({
+      cid: data?.cid || name,
+      name: data?.name || name,
+      description: data?.description || cleanDescription,
+      level: data?.level || level,
+      status: data?.status || "draft",
+      img_url: data?.img_url || imageUrl,
+    });
+
+    setCourses((currentCourses) => [createdCourse, ...currentCourses]);
     setSaving(false);
     onModalOpenChange(false);
     resetForm();
+    onCourseCreated?.(createdCourse);
+  }
+
+  async function handleDeleteCourse(course) {
+    setActiveCourseMenuId(null);
+
+    if (!course?.cid) {
+      setMessage("Course ID was not found.");
+      return;
+    }
+
+    if (!supabase) {
+      setMessage(supabaseConfigError || "Supabase is not configured.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete "${course.title}"? This cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("course")
+      .delete()
+      .eq("cid", course.cid)
+      .eq("tid", teacherProfile.tid);
+
+    if (error) {
+      setMessage(`Course delete failed: ${error.message}`);
+      return;
+    }
+
+    setCourses((currentCourses) =>
+      currentCourses.filter((currentCourse) => currentCourse.id !== course.id)
+    );
+  }
+
+  function handleEditLessons(course) {
+    setActiveCourseMenuId(null);
+    onEditLessons?.(course);
+  }
+
+  async function handleChangeCourseStatus(course, nextStatus) {
+    setActiveCourseMenuId(null);
+
+    if (!course?.cid || course.rawStatus === nextStatus) {
+      return;
+    }
+
+    if (!supabase) {
+      setMessage(supabaseConfigError || "Supabase is not configured.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("course")
+      .update({ status: nextStatus })
+      .eq("cid", course.cid)
+      .eq("tid", teacherProfile.tid)
+      .select("cid, name, description, level, status, img_url")
+      .single();
+
+    if (error) {
+      setMessage(`Status update failed: ${error.message}`);
+      return;
+    }
+
+    const updatedCourse = mapCourseRowToCard(data);
+    setCourses((currentCourses) =>
+      currentCourses.map((currentCourse) =>
+        currentCourse.id === updatedCourse.id ? updatedCourse : currentCourse
+      )
+    );
   }
 
   return (
@@ -205,7 +349,7 @@ export default function MyCoursesPage({
         <button
           type="button"
           className="teacher-new-course-button"
-          onClick={() => onModalOpenChange(true)}
+          onClick={openCreateCourseModal}
         >
           <CirclePlus aria-hidden="true" />
           <span>Create New Course</span>
@@ -224,7 +368,8 @@ export default function MyCoursesPage({
         <div className="teacher-course-stats">
           <span>
             <i aria-hidden="true" />
-            {courses.filter((course) => course.rawStatus === "active").length} Active Courses
+            {courses.filter((course) => course.rawStatus === "active").length}{" "}
+            Active Courses
           </span>
           <span className="purple">
             <i aria-hidden="true" />
@@ -237,7 +382,24 @@ export default function MyCoursesPage({
         {loadingCourses ? (
           <p className="teacher-course-empty">Loading your courses...</p>
         ) : courses.length > 0 ? (
-          courses.map((course) => <CourseCard key={course.id} course={course} />)
+          courses.map((course) => (
+            <CourseCard
+              key={course.id}
+              course={course}
+              menuOpen={activeCourseMenuId === course.id}
+              onToggleMenu={() =>
+                setActiveCourseMenuId((currentMenuId) =>
+                  currentMenuId === course.id ? null : course.id
+                )
+              }
+              onEdit={() => openEditCourseModal(course)}
+              onEditLessons={() => handleEditLessons(course)}
+              onDelete={() => void handleDeleteCourse(course)}
+              onChangeStatus={(nextStatus) =>
+                void handleChangeCourseStatus(course, nextStatus)
+              }
+            />
+          ))
         ) : (
           <p className="teacher-course-empty">
             No courses yet. Create a course to see it here.
@@ -264,15 +426,17 @@ export default function MyCoursesPage({
         <div className="teacher-course-modal-backdrop" role="presentation">
           <form
             className="teacher-course-modal"
-            onSubmit={handleCreateCourse}
+            onSubmit={handleSaveCourse}
             role="dialog"
             aria-modal="true"
             aria-labelledby="create-course-title"
           >
             <div className="teacher-course-modal-header">
               <div>
-                <p>Create course</p>
-                <h3 id="create-course-title">New Course</h3>
+                <p>{isEditingCourse ? "Edit course" : "Create course"}</p>
+                <h3 id="create-course-title">
+                  {isEditingCourse ? "Update Course" : "New Course"}
+                </h3>
               </div>
               <button
                 type="button"
@@ -321,6 +485,10 @@ export default function MyCoursesPage({
                 <p className="teacher-course-file-name">
                   Selected image: {imageFile.name}
                 </p>
+              ) : isEditingCourse && editingCourse?.imgUrl ? (
+                <p className="teacher-course-file-name">
+                  Current cover image will stay unless you choose a new one.
+                </p>
               ) : null}
             </label>
 
@@ -344,7 +512,13 @@ export default function MyCoursesPage({
                 Cancel
               </button>
               <button type="submit" disabled={saving}>
-                {saving ? "Creating..." : "Create Course"}
+                {saving
+                  ? isEditingCourse
+                    ? "Updating..."
+                    : "Creating..."
+                  : isEditingCourse
+                    ? "Update Course"
+                    : "Create Course"}
               </button>
             </div>
           </form>
@@ -354,7 +528,15 @@ export default function MyCoursesPage({
   );
 }
 
-function CourseCard({ course }) {
+function CourseCard({
+  course,
+  menuOpen,
+  onToggleMenu,
+  onEdit,
+  onEditLessons,
+  onDelete,
+  onChangeStatus,
+}) {
   return (
     <article className={`teacher-course-card ${course.tone}`}>
       <div
@@ -369,9 +551,45 @@ function CourseCard({ course }) {
       <div className="teacher-course-body">
         <div className="teacher-course-title-row">
           <h3>{course.title}</h3>
-          <button type="button" aria-label={`${course.title} options`}>
-            <MoreVertical aria-hidden="true" />
-          </button>
+          <div className="teacher-course-menu-wrap">
+            <button
+              type="button"
+              aria-label={`${course.title} options`}
+              aria-expanded={menuOpen}
+              onClick={onToggleMenu}
+            >
+              <MoreVertical aria-hidden="true" />
+            </button>
+
+            {menuOpen ? (
+              <div className="teacher-course-action-menu">
+                <button type="button" onClick={onEdit}>
+                  Edit
+                </button>
+                <button type="button" onClick={onEditLessons}>
+                  Edit lessons
+                </button>
+                <button type="button" className="danger" onClick={onDelete}>
+                  Delete
+                </button>
+                <div className="teacher-course-action-divider" />
+                {courseStatuses.map((status) => {
+                  const isCurrentStatus = course.rawStatus === status.value;
+
+                  return (
+                    <button
+                      key={status.value}
+                      type="button"
+                      disabled={isCurrentStatus}
+                      onClick={() => onChangeStatus(status.value)}
+                    >
+                      {status.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="teacher-course-meta">
@@ -482,8 +700,11 @@ function mapCourseRowToCard(row) {
   const statusValue = row?.status || "draft";
 
   return {
+    cid: row?.cid || null,
     id: row?.cid || row?.name,
     title: row?.name || "Untitled Course",
+    description: row?.description || "",
+    level: levelValue,
     tag: getLevelLabel(levelValue),
     students: "0",
     studentCount: 0,

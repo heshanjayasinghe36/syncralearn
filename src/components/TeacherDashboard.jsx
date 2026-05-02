@@ -9,6 +9,7 @@ import {
   Search,
   Settings,
 } from "lucide-react";
+import CreateCoursePage from "./CreateCoursePage";
 import MyCoursesPage from "./MyCoursesPage";
 
 const sidebarItems = [
@@ -32,6 +33,7 @@ const sidebarItems = [
 export default function TeacherDashboard({ session, onSignOut, teacherProfile }) {
   const [activeView, setActiveView] = useState("courses");
   const [courseModalOpen, setCourseModalOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const displayName =
     teacherProfile?.full_name ||
     session?.user?.user_metadata?.full_name ||
@@ -58,9 +60,15 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
             <button
               key={label}
               type="button"
-              onClick={() => setActiveView(id)}
+              onClick={() => {
+                if (id === "courses") {
+                  setSelectedCourse(null);
+                }
+
+                setActiveView(id);
+              }}
               className={`teacher-sidebar-link ${
-                activeView === id ? "is-active" : ""
+                isSidebarItemActive(id, activeView) ? "is-active" : ""
               }`}
             >
               {icon}
@@ -74,6 +82,7 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
           className="teacher-create-button"
           onClick={() => {
             setActiveView("courses");
+            setSelectedCourse(null);
             setCourseModalOpen(true);
           }}
         >
@@ -126,6 +135,22 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
             teacherProfile={teacherProfile}
             modalOpen={courseModalOpen}
             onModalOpenChange={setCourseModalOpen}
+            onCourseCreated={(course) => {
+              setSelectedCourse(course);
+              setActiveView("create-course");
+            }}
+            onEditLessons={(course) => {
+              setSelectedCourse(course);
+              setActiveView("create-course");
+            }}
+          />
+        ) : activeView === "create-course" ? (
+          <CreateCoursePage
+            course={selectedCourse}
+            onBack={() => {
+              setSelectedCourse(null);
+              setActiveView("courses");
+            }}
           />
         ) : (
           <main
@@ -136,6 +161,14 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
       </section>
     </div>
   );
+}
+
+function isSidebarItemActive(id, activeView) {
+  if (id === "courses") {
+    return activeView === "courses" || activeView === "create-course";
+  }
+
+  return activeView === id;
 }
 
 function getInitials(name) {
