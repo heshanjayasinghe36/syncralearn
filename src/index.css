@@ -1069,7 +1069,7 @@ body::selection {
   .teacher-dashboard-shell {
     height: 100vh;
     display: grid;
-    grid-template-columns: 15.25rem minmax(0, 1fr);
+    grid-template-columns: 15rem minmax(0, 1fr);
     overflow: hidden;
     background:
       radial-gradient(circle at 78% 8%, rgba(218, 246, 238, 0.74), transparent 23rem),
@@ -1092,7 +1092,7 @@ body::selection {
     gap: 2rem;
     border-radius: 0 1.6rem 1.6rem 0;
     background: rgba(255, 255, 255, 0.88);
-    padding: 1.65rem 0.85rem 1rem;
+    padding: 1.55rem 0.72rem 1rem;
     box-shadow: 22px 0 58px rgba(37, 75, 68, 0.08);
     backdrop-filter: blur(20px) saturate(120%);
     -webkit-backdrop-filter: blur(20px) saturate(120%);
@@ -1106,8 +1106,8 @@ body::selection {
   .teacher-sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0 0.45rem;
+    gap: 0.62rem;
+    padding: 0 0.34rem;
   }
 
   .teacher-brand-mark {
@@ -1157,9 +1157,9 @@ body::selection {
   .teacher-sidebar-link {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.62rem;
     border-radius: 999px;
-    padding: 0.78rem 0.85rem;
+    padding: 0.76rem 0.72rem;
     color: #586b86;
     font-size: 1rem;
     font-weight: 700;
@@ -1395,6 +1395,254 @@ body::selection {
     min-height: calc(100vh - 5rem);
   }
 
+  .student-dashboard-shell {
+    display: grid;
+    height: 100vh;
+    grid-template-columns: 15.25rem minmax(0, 1fr);
+    grid-template-rows: 5rem minmax(0, 1fr);
+    grid-template-areas:
+      "topbar topbar"
+      "sidebar main";
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 80% 12%, rgba(218, 246, 238, 0.74), transparent 24rem),
+      linear-gradient(180deg, #f7fafb 0%, #f1f6f8 100%);
+    color: #17231f;
+  }
+
+  .dark .student-dashboard-shell {
+    background:
+      radial-gradient(circle at 80% 12%, rgba(31, 107, 92, 0.24), transparent 24rem),
+      linear-gradient(180deg, #071116 0%, #111b22 100%);
+    color: #f5fbf8;
+  }
+
+  .student-topbar {
+    grid-area: topbar;
+    display: grid;
+    grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 30rem) minmax(12rem, 1fr);
+    align-items: center;
+    gap: 1.4rem;
+    border-bottom: 1px solid rgba(174, 232, 216, 0.55);
+    background: rgba(247, 250, 251, 0.74);
+    padding: 1rem 1.7rem;
+    backdrop-filter: blur(18px) saturate(120%);
+    -webkit-backdrop-filter: blur(18px) saturate(120%);
+  }
+
+  .dark .student-topbar {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    background: rgba(9, 18, 22, 0.72);
+  }
+
+  .student-topbar-brand {
+    color: #00a894;
+    font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+    font-weight: 850;
+    letter-spacing: -0.055em;
+  }
+
+  .student-search {
+    display: flex;
+    width: min(100%, 28rem);
+    justify-self: center;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 999px;
+    background: rgba(234, 239, 244, 0.86);
+    padding: 0.75rem 1rem;
+    color: #6f7f88;
+  }
+
+  .dark .student-search {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(245, 251, 248, 0.5);
+  }
+
+  .student-search input {
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #17231f;
+    font-size: 0.95rem;
+    font-weight: 650;
+    outline: none;
+  }
+
+  .dark .student-search input {
+    color: #f5fbf8;
+  }
+
+  .student-search input::placeholder {
+    color: #6b7b94;
+  }
+
+  .student-topbar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.8rem;
+  }
+
+  .student-icon-button,
+  .student-signout-button {
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .student-icon-button {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    border-radius: 999px;
+    color: #17231f;
+  }
+
+  .student-icon-button:hover,
+  .student-signout-button:hover {
+    transform: translateY(-1px);
+    background: rgba(0, 182, 159, 0.1);
+    color: #006e64;
+  }
+
+  .dark .student-icon-button {
+    color: rgba(245, 251, 248, 0.72);
+  }
+
+  .student-streak-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #008b7d;
+    font-size: 0.9rem;
+    font-weight: 850;
+  }
+
+  .student-streak-chip svg {
+    color: #ff7a1a;
+  }
+
+  .student-sidebar-settings {
+    margin-top: auto;
+  }
+
+  .student-avatar {
+    display: grid;
+    width: 2.7rem;
+    height: 2.7rem;
+    place-items: center;
+    border: 3px solid #b9efdf;
+    border-radius: 999px;
+    background: linear-gradient(145deg, #f6cdb1, #75d2c5);
+    color: #164438;
+    font-size: 0.8rem;
+    font-weight: 850;
+    box-shadow: 0 10px 22px rgba(37, 75, 68, 0.16);
+  }
+
+  .student-signout-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid rgba(174, 232, 216, 0.8);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.62);
+    padding: 0.62rem 0.85rem;
+    color: #347464;
+    font-size: 0.8rem;
+    font-weight: 850;
+  }
+
+  .dark .student-signout-button {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    color: #b7f4e6;
+  }
+
+  .student-sidebar {
+    grid-area: sidebar;
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    border-radius: 0 0 1.6rem 0;
+    background: rgba(255, 255, 255, 0.88);
+    padding: 4.9rem 0.85rem 1rem;
+    box-shadow: 22px 0 58px rgba(37, 75, 68, 0.08);
+    backdrop-filter: blur(20px) saturate(120%);
+    -webkit-backdrop-filter: blur(20px) saturate(120%);
+  }
+
+  .dark .student-sidebar {
+    background: rgba(12, 23, 29, 0.86);
+    box-shadow: 22px 0 58px rgba(0, 0, 0, 0.24);
+  }
+
+  .student-sidebar-nav {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .student-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 999px;
+    padding: 0.78rem 0.85rem;
+    color: #586b86;
+    font-size: 1rem;
+    font-weight: 750;
+    text-align: left;
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .student-sidebar-link:hover {
+    transform: translateX(2px);
+    background: rgba(0, 182, 159, 0.08);
+    color: #006e64;
+  }
+
+  .student-sidebar-link.is-active {
+    background: #e9f8f3;
+    color: #007c70;
+    box-shadow: inset -2px 0 0 #12c7b7;
+  }
+
+  .dark .student-sidebar-link {
+    color: rgba(245, 251, 248, 0.62);
+  }
+
+  .dark .student-sidebar-link:hover,
+  .dark .student-sidebar-link.is-active {
+    background: rgba(115, 226, 211, 0.12);
+    color: #b7f4e6;
+  }
+
+  .student-topbar svg,
+  .student-sidebar-link svg {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .student-signout-button svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .student-dashboard-main {
+    grid-area: main;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   .teacher-courses-page {
     display: flex;
     flex: 1;
@@ -1467,6 +1715,194 @@ body::selection {
 
   .dark .teacher-create-course-header h2 {
     color: #f8fbff;
+  }
+
+  .teacher-publish-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 1rem;
+    border: 1px solid rgba(210, 229, 228, 0.72);
+    border-radius: 1.2rem;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 0.9rem;
+    box-shadow: 0 16px 36px rgba(37, 75, 68, 0.08);
+  }
+
+  .dark .teacher-publish-card {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .teacher-publish-card > div p {
+    margin: 0 0 0.18rem;
+    color: #008b7d;
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .teacher-publish-card h3 {
+    color: #111827;
+    font-size: 1.05rem;
+    font-weight: 850;
+    letter-spacing: -0.035em;
+  }
+
+  .dark .teacher-publish-card h3 {
+    color: #f8fbff;
+  }
+
+  .teacher-publish-card form {
+    display: flex;
+    align-items: end;
+    justify-content: flex-end;
+    gap: 0.65rem;
+  }
+
+  .teacher-publish-card label {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .teacher-publish-card label span {
+    color: #17231f;
+    font-size: 0.76rem;
+    font-weight: 850;
+  }
+
+  .dark .teacher-publish-card label span {
+    color: rgba(245, 251, 248, 0.78);
+  }
+
+  .teacher-publish-card input,
+  .teacher-publish-card select {
+    width: 8.5rem;
+    border: 1px solid rgba(210, 229, 228, 0.78);
+    border-radius: 999px;
+    background: rgba(240, 244, 246, 0.9);
+    padding: 0.68rem 0.85rem;
+    color: #111827;
+    font-size: 0.86rem;
+    font-weight: 800;
+    outline: none;
+  }
+
+  .teacher-publish-card select {
+    width: 7.2rem;
+    appearance: none;
+    padding-right: 2rem;
+    cursor: pointer;
+  }
+
+  .teacher-publish-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .teacher-publish-select-wrap svg {
+    position: absolute;
+    right: 0.75rem;
+    width: 0.9rem;
+    height: 0.9rem;
+    color: #6b7b88;
+    pointer-events: none;
+  }
+
+  .teacher-publish-amount-control {
+    display: inline-flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(210, 229, 228, 0.78);
+    border-radius: 999px;
+    background: rgba(240, 244, 246, 0.9);
+  }
+
+  .teacher-publish-amount-control input {
+    width: 6.4rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding-right: 0.2rem;
+  }
+
+  .teacher-publish-amount-control input:disabled {
+    color: #83909b;
+    cursor: not-allowed;
+  }
+
+  .teacher-publish-amount-control.is-free {
+    background: rgba(224, 248, 242, 0.86);
+  }
+
+  .teacher-publish-card .teacher-publish-currency {
+    padding: 0 0.8rem 0 0.2rem;
+    color: #5d706b;
+    font-size: 0.76rem;
+    font-weight: 850;
+    letter-spacing: 0.04em;
+  }
+
+  .teacher-publish-amount-control input:focus {
+    box-shadow: none;
+  }
+
+  .teacher-publish-card input:focus,
+  .teacher-publish-card select:focus,
+  .teacher-publish-amount-control:focus-within {
+    border-color: rgba(0, 182, 159, 0.42);
+    box-shadow: 0 0 0 4px rgba(0, 182, 159, 0.1);
+  }
+
+  .dark .teacher-publish-card input,
+  .dark .teacher-publish-card select,
+  .dark .teacher-publish-amount-control {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8fbff;
+  }
+
+  .dark .teacher-publish-amount-control input {
+    background: transparent;
+  }
+
+  .dark .teacher-publish-amount-control.is-free {
+    background: rgba(115, 226, 211, 0.1);
+  }
+
+  .dark .teacher-publish-card .teacher-publish-currency,
+  .dark .teacher-publish-select-wrap svg {
+    color: rgba(245, 251, 248, 0.68);
+  }
+
+  .teacher-publish-card button {
+    border-radius: 999px;
+    background: #347464;
+    padding: 0.7rem 1rem;
+    color: #ffffff;
+    font-size: 0.84rem;
+    font-weight: 850;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+  }
+
+  .teacher-publish-card button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+  }
+
+  .teacher-publish-message {
+    grid-column: 1 / -1;
+    margin: -0.2rem 0 0;
+    color: #315f55;
+    font-size: 0.8rem;
+    font-weight: 750;
+  }
+
+  .dark .teacher-publish-message {
+    color: rgba(245, 251, 248, 0.76);
   }
 
   .teacher-builder-card {
@@ -2875,6 +3311,54 @@ body::selection {
   }
 
   @media (max-width: 759px) {
+    .student-dashboard-shell {
+      height: auto;
+      min-height: 100vh;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto minmax(18rem, 1fr);
+      grid-template-areas:
+        "topbar"
+        "sidebar"
+        "main";
+      overflow: visible;
+    }
+
+    .student-topbar {
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+      padding: 1rem;
+    }
+
+    .student-search {
+      justify-self: stretch;
+      width: 100%;
+    }
+
+    .student-topbar-actions {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .student-sidebar {
+      min-height: auto;
+      border-radius: 0 0 1.7rem 1.7rem;
+      padding: 1.1rem;
+    }
+
+    .student-sidebar-nav {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .student-sidebar-link {
+      flex: 1 1 9rem;
+    }
+
+    .student-dashboard-main {
+      min-height: 18rem;
+      overflow: visible;
+    }
+
     .teacher-dashboard-shell {
       height: auto;
       min-height: 100vh;

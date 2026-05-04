@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Banknote,
   Calendar,
   ChevronDown,
   CirclePlus,
@@ -74,7 +75,7 @@ export default function MyCoursesPage({
 
       const { data, error } = await supabase
         .from("course")
-        .select("cid, name, description, level, status, img_url")
+        .select("cid, name, description, level, status, img_url, amount")
         .eq("tid", teacherProfile.tid)
         .order("cid", { ascending: false });
 
@@ -204,7 +205,7 @@ export default function MyCoursesPage({
         })
         .eq("cid", editingCourse.cid)
         .eq("tid", teacherProfile.tid)
-        .select("cid, name, description, level, status, img_url")
+        .select("cid, name, description, level, status, img_url, amount")
         .single();
 
       if (error) {
@@ -235,7 +236,7 @@ export default function MyCoursesPage({
         tid: teacherProfile.tid,
         status: "draft",
       })
-      .select("cid, name, description, level, status, img_url")
+      .select("cid, name, description, level, status, img_url, amount")
       .single();
 
     if (error) {
@@ -248,6 +249,7 @@ export default function MyCoursesPage({
       cid: data?.cid || name,
       name: data?.name || name,
       description: data?.description || cleanDescription,
+      amount: data?.amount ?? "",
       level: data?.level || level,
       status: data?.status || "draft",
       img_url: data?.img_url || imageUrl,
@@ -314,12 +316,12 @@ export default function MyCoursesPage({
       return;
     }
 
-    const { data, error } = await supabase
-      .from("course")
-      .update({ status: nextStatus })
-      .eq("cid", course.cid)
-      .eq("tid", teacherProfile.tid)
-      .select("cid, name, description, level, status, img_url")
+      const { data, error } = await supabase
+        .from("course")
+        .update({ status: nextStatus })
+        .eq("cid", course.cid)
+        .eq("tid", teacherProfile.tid)
+      .select("cid, name, description, level, status, img_url, amount")
       .single();
 
     if (error) {
@@ -601,6 +603,10 @@ function CourseCard({
             <Calendar aria-hidden="true" />
             {course.schedule}
           </span>
+          <span className="teacher-course-amount">
+            <Banknote aria-hidden="true" />
+            {formatCourseAmount(course.amount)}
+          </span>
         </div>
 
         <div className="teacher-course-progress-label">
@@ -704,6 +710,7 @@ function mapCourseRowToCard(row) {
     id: row?.cid || row?.name,
     title: row?.name || "Untitled Course",
     description: row?.description || "",
+    amount: row?.amount ?? "",
     level: levelValue,
     tag: getLevelLabel(levelValue),
     students: "0",
@@ -726,4 +733,22 @@ function formatCourseStatus(value) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function formatCourseAmount(amount) {
+  if (amount === null || amount === undefined || amount === "") {
+    return "Not set";
+  }
+
+  const numericAmount = Number(amount);
+
+  if (!Number.isFinite(numericAmount)) {
+    return "Not set";
+  }
+
+  if (numericAmount === 0) {
+    return "Free";
+  }
+
+  return `LKR ${numericAmount.toFixed(2)}`;
 }

@@ -52,6 +52,14 @@ export default function CreateCoursePage({ course, onBack }) {
   const [savingLesson, setSavingLesson] = useState(false);
   const [savingContent, setSavingContent] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [publishPricingType, setPublishPricingType] = useState(() =>
+    course?.amount === 0 ? "free" : "paid"
+  );
+  const [publishAmount, setPublishAmount] = useState(() =>
+    formatPublishAmount(course?.amount)
+  );
+  const [publishingCourse, setPublishingCourse] = useState(false);
+  const [publishMessage, setPublishMessage] = useState("");
   const [message, setMessage] = useState("");
   const [draggingLessonId, setDraggingLessonId] = useState(null);
   const [dragOverLessonId, setDragOverLessonId] = useState(null);
@@ -431,6 +439,76 @@ export default function CreateCoursePage({ course, onBack }) {
     await saveLessonOrder(nextLessons, previousLessons);
   }
 
+  async function handlePublishCourse(event) {
+    event.preventDefault();
+
+    if (!courseId) {
+      setPublishMessage("Course ID was not found.");
+      return;
+    }
+
+    if (!supabase) {
+      setPublishMessage(supabaseConfigError || "Supabase is not configured.");
+      return;
+    }
+
+    const cleanAmount = String(publishAmount).trim();
+    const isFreeCourse = publishPricingType === "free";
+    const numericAmount = isFreeCourse ? 0 : Number(cleanAmount);
+
+    if (
+      (!isFreeCourse && !cleanAmount) ||
+      (!isFreeCourse && (!Number.isFinite(numericAmount) || numericAmount < 0))
+    ) {
+      setPublishMessage("Enter a valid course amount or choose Free.");
+      return;
+    }
+
+    setPublishingCourse(true);
+    setPublishMessage("");
+
+    const { error } = await supabase
+      .from("course")
+      .update({
+        amount: numericAmount,
+        status: "active",
+      })
+      .eq("cid", courseId);
+
+    if (error) {
+      setPublishMessage(`Course publish failed: ${error.message}`);
+      setPublishingCourse(false);
+      return;
+    }
+
+    setPublishingCourse(false);
+    setPublishMessage("Course published successfully.");
+  }
+
+  function handlePublishPricingChange(event) {
+    const nextPricingType = event.target.value;
+
+    setPublishPricingType(nextPricingType);
+    setPublishMessage("");
+
+    if (nextPricingType === "free") {
+      setPublishAmount("0.00");
+    }
+  }
+
+  function handlePublishAmountBlur() {
+    if (publishPricingType === "free") {
+      setPublishAmount("0.00");
+      return;
+    }
+
+    const numericAmount = Number(String(publishAmount).trim());
+
+    if (Number.isFinite(numericAmount) && numericAmount >= 0) {
+      setPublishAmount(numericAmount.toFixed(2));
+    }
+  }
+
   return (
     <main className="teacher-create-course-page" aria-label="Create course">
       <div className="teacher-create-course-header">
@@ -611,6 +689,57 @@ export default function CreateCoursePage({ course, onBack }) {
             </p>
           )}
         </div>
+      </section>
+
+      <section className="teacher-publish-card" aria-label="Publish course">
+        <div>
+          <p>Ready to publish</p>
+          <h3>Set course amount</h3>
+        </div>
+
+        <form onSubmit={handlePublishCourse}>
+          <label className="teacher-publish-type-label" aria-label="Pricing type">
+            <div className="teacher-publish-select-wrap">
+              <select
+                value={publishPricingType}
+                onChange={handlePublishPricingChange}
+                disabled={publishingCourse}
+                aria-label="Pricing type"
+              >
+                <option value="paid">Paid</option>
+                <option value="free">Free</option>
+              </select>
+              <ChevronDown aria-hidden="true" />
+            </div>
+          </label>
+
+          <label aria-label="Course amount">
+            <div
+              className={`teacher-publish-amount-control ${
+                publishPricingType === "free" ? "is-free" : ""
+              }`}
+            >
+              <input
+                type="text"
+                inputMode="decimal"
+                value={publishAmount}
+                onChange={(event) => setPublishAmount(event.target.value)}
+                onBlur={handlePublishAmountBlur}
+                placeholder="0.00"
+                disabled={publishingCourse || publishPricingType === "free"}
+                aria-label="Course amount"
+              />
+              <span className="teacher-publish-currency">LKR</span>
+            </div>
+          </label>
+          <button type="submit" disabled={publishingCourse}>
+            {publishingCourse ? "Publishing..." : "Publish"}
+          </button>
+        </form>
+
+        {publishMessage ? (
+          <p className="teacher-publish-message">{publishMessage}</p>
+        ) : null}
       </section>
     </main>
   );
@@ -943,6 +1072,17 @@ function getYouTubeEmbedUrl(url) {
 
 function isDirectVideoUrl(url) {
   return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url);
+}
+
+function formatPublishAmount(amount) {
+  if (amount === null || amount === undefined || amount === "") {
+    return "0.00";
+  }
+
+  const numericAmount = Number(amount);
+  return Number.isFinite(numericAmount) && numericAmount >= 0
+    ? numericAmount.toFixed(2)
+    : "0.00";
 }
 
 function mapLessonRow(row) {
