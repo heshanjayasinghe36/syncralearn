@@ -9,6 +9,7 @@ import {
   Search,
   Settings,
 } from "lucide-react";
+import CoursePreviewPage from "./CoursePreviewPage";
 import CreateCoursePage from "./CreateCoursePage";
 import MyCoursesPage from "./MyCoursesPage";
 
@@ -41,6 +42,19 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
     session?.user?.email?.split("@")[0] ||
     "Teacher";
   const initials = getInitials(displayName);
+
+  if (activeView === "course-preview") {
+    return (
+      <CoursePreviewPage
+        course={selectedCourse}
+        displayName={displayName}
+        onBack={() => {
+          setSelectedCourse(null);
+          setActiveView("courses");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="teacher-dashboard-shell">
@@ -143,6 +157,10 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
               setSelectedCourse(course);
               setActiveView("create-course");
             }}
+            onPreviewCourse={(course) => {
+              setSelectedCourse(course);
+              setActiveView("course-preview");
+            }}
           />
         ) : activeView === "create-course" ? (
           <CreateCoursePage
@@ -165,7 +183,11 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
 
 function isSidebarItemActive(id, activeView) {
   if (id === "courses") {
-    return activeView === "courses" || activeView === "create-course";
+    return (
+      activeView === "courses" ||
+      activeView === "create-course" ||
+      activeView === "course-preview"
+    );
   }
 
   return activeView === id;

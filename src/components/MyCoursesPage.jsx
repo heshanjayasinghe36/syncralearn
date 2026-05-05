@@ -47,6 +47,7 @@ export default function MyCoursesPage({
   onModalOpenChange,
   onCourseCreated,
   onEditLessons,
+  onPreviewCourse,
 }) {
   const [courses, setCourses] = useState([]);
   const [courseName, setCourseName] = useState("");
@@ -400,6 +401,7 @@ export default function MyCoursesPage({
               onChangeStatus={(nextStatus) =>
                 void handleChangeCourseStatus(course, nextStatus)
               }
+              onPreview={() => onPreviewCourse?.(course)}
             />
           ))
         ) : (
@@ -538,9 +540,30 @@ function CourseCard({
   onEditLessons,
   onDelete,
   onChangeStatus,
+  onPreview,
 }) {
+  function handleCardKeyDown(event) {
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    onPreview?.();
+  }
+
   return (
-    <article className={`teacher-course-card ${course.tone}`}>
+    <article
+      className={`teacher-course-card ${course.tone}`}
+      role="button"
+      tabIndex={0}
+      onClick={onPreview}
+      onKeyDown={handleCardKeyDown}
+      aria-label={`Preview ${course.title}`}
+    >
       <div
         className={`teacher-course-visual ${course.imgUrl ? "has-image" : ""}`}
       >
@@ -558,13 +581,20 @@ function CourseCard({
               type="button"
               aria-label={`${course.title} options`}
               aria-expanded={menuOpen}
-              onClick={onToggleMenu}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleMenu();
+              }}
             >
               <MoreVertical aria-hidden="true" />
             </button>
 
             {menuOpen ? (
-              <div className="teacher-course-action-menu">
+              <div
+                className="teacher-course-action-menu"
+                onClick={(event) => event.stopPropagation()}
+                role="presentation"
+              >
                 <button type="button" onClick={onEdit}>
                   Edit
                 </button>
