@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import LoginPage from "./components/LoginPage";
-import SignupPage from "./components/SignupPage";
-import AdminDashboard from "./components/AdminDashboard";
-import StudentDashboard from "./components/StudentDashboard";
-import StudentOnboarding from "./components/StudentOnboarding";
-import TeacherDashboard from "./components/TeacherDashboard";
-import TeacherOnboarding from "./components/TeacherOnboarding";
+import { AdminDashboard } from "./components/admin";
+import { LoginPage, SignupPage } from "./components/auth";
+import { StudentOnboarding, TeacherOnboarding } from "./components/onboarding";
+import { StudentDashboard } from "./components/student";
+import { TeacherDashboard } from "./components/teacher";
 import {
   clearStoredAdminSession,
   clearPendingOAuthMode,
@@ -377,6 +375,7 @@ export default function App() {
             onSignOut={handleSignOut}
             userRole={userRole}
             studentProfile={studentProfile}
+            onStudentProfileUpdate={setStudentProfile}
           />
         )
       ) : page === "login" ? (

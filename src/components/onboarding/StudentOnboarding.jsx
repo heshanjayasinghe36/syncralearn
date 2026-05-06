@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "../lib/supabase";
-import { VARK_OPTIONS, VARK_OPTION_GROUPS } from "../lib/vark";
+import { supabase } from "../../lib/supabase";
+import { VARK_OPTIONS, VARK_OPTION_GROUPS } from "../../lib/vark";
 
 export default function StudentOnboarding({
   session,

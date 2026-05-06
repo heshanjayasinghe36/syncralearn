@@ -3,7 +3,7 @@ import {
   continueWithGoogle,
   supabase,
   supabaseConfigError,
-} from "../lib/supabase";
+} from "../../lib/supabase";
 
 export default function SignupPage({
   notice,

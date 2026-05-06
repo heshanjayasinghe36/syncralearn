@@ -12,7 +12,7 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { supabase, supabaseConfigError } from "../lib/supabase";
+import { supabase, supabaseConfigError } from "../../lib/supabase";
 
 const lessonContentTypes = [
   { value: "video", label: "Add Video", itemLabel: "Video" },
@@ -52,6 +52,12 @@ export default function CreateCoursePage({ course, onBack }) {
   const [savingLesson, setSavingLesson] = useState(false);
   const [savingContent, setSavingContent] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [introVideoUrl, setIntroVideoUrl] = useState(
+    () => course?.intro_vid_url || course?.introVideoUrl || ""
+  );
+  const [savingIntroVideo, setSavingIntroVideo] = useState(false);
+  const [showIntroVideoPreview, setShowIntroVideoPreview] = useState(false);
+  const [introVideoMessage, setIntroVideoMessage] = useState("");
   const [publishPricingType, setPublishPricingType] = useState(() =>
     course?.amount === 0 ? "free" : "paid"
   );
@@ -66,6 +72,82 @@ export default function CreateCoursePage({ course, onBack }) {
   const courseId = course?.cid || course?.id || null;
   const canReorder = lessons.length >= 2 && !savingOrder;
   const isEditingLesson = Boolean(editingLesson);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadIntroVideo() {
+      const passedIntroUrl = course?.intro_vid_url || course?.introVideoUrl;
+
+      if (passedIntroUrl) {
+        setIntroVideoUrl(passedIntroUrl);
+        return;
+      }
+
+      if (!courseId || !supabase) {
+        setIntroVideoUrl("");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("course")
+        .select("intro_vid_url")
+        .eq("cid", courseId)
+        .maybeSingle();
+
+      if (ignore) {
+        return;
+      }
+
+      if (!error) {
+        setIntroVideoUrl(data?.intro_vid_url || "");
+      }
+    }
+
+    void loadIntroVideo();
+
+    return () => {
+      ignore = true;
+    };
+  }, [course?.intro_vid_url, course?.introVideoUrl, courseId]);
+
+  async function handleSaveIntroVideo(event) {
+    event.preventDefault();
+
+    if (!courseId) {
+      setIntroVideoMessage("Course ID was not found.");
+      return;
+    }
+
+    if (!supabase) {
+      setIntroVideoMessage(supabaseConfigError || "Supabase is not configured.");
+      return;
+    }
+
+    const cleanIntroVideoUrl = introVideoUrl.trim();
+
+    setSavingIntroVideo(true);
+    setIntroVideoMessage("");
+
+    const { error } = await supabase
+      .from("course")
+      .update({ intro_vid_url: cleanIntroVideoUrl || null })
+      .eq("cid", courseId);
+
+    if (error) {
+      setIntroVideoMessage(`Introduction video save failed: ${error.message}`);
+      setSavingIntroVideo(false);
+      return;
+    }
+
+    setIntroVideoUrl(cleanIntroVideoUrl);
+    setIntroVideoMessage(
+      cleanIntroVideoUrl
+        ? "Introduction video saved."
+        : "Introduction video removed."
+    );
+    setSavingIntroVideo(false);
+  }
 
   function toggleLessonExpanded(lessonId) {
     setExpandedLessons((currentLessons) => ({
@@ -522,6 +604,73 @@ export default function CreateCoursePage({ course, onBack }) {
           <h2>{course?.title || course?.name || "New Course"}</h2>
         </div>
       </div>
+
+      <section
+        className="teacher-intro-video-card"
+        aria-label="Introduction video"
+      >
+        <div className="teacher-builder-intro">
+          <span>
+            <Video aria-hidden="true" />
+          </span>
+          <div>
+            <h3>Introduction video</h3>
+            <p>
+              Add a preview video students can watch before purchasing this
+              course.
+            </p>
+          </div>
+        </div>
+
+        <form className="teacher-intro-video-form" onSubmit={handleSaveIntroVideo}>
+          <label>
+            <span>Video URL</span>
+            <input
+              type="url"
+              value={introVideoUrl}
+              onChange={(event) => {
+                setIntroVideoUrl(event.target.value);
+                setShowIntroVideoPreview(false);
+                setIntroVideoMessage("");
+              }}
+              placeholder="https://youtube.com/watch?v=..."
+              disabled={savingIntroVideo}
+            />
+          </label>
+
+          <div className="teacher-intro-video-actions">
+            <button type="submit" disabled={savingIntroVideo}>
+              {savingIntroVideo ? "Saving..." : "Save Video"}
+            </button>
+            <button
+              type="button"
+              className="teacher-intro-video-preview-button"
+              disabled={savingIntroVideo}
+              onClick={() => {
+                if (!introVideoUrl.trim()) {
+                  setIntroVideoMessage("Enter a video URL to preview.");
+                  return;
+                }
+
+                setIntroVideoMessage("");
+                setShowIntroVideoPreview((currentValue) => !currentValue);
+              }}
+            >
+              {showIntroVideoPreview ? "Hide Preview" : "Preview"}
+            </button>
+          </div>
+        </form>
+
+        {showIntroVideoPreview && introVideoUrl.trim() ? (
+          <div className="teacher-intro-video-preview">
+            <VideoPreview url={introVideoUrl} title="Introduction video" />
+          </div>
+        ) : null}
+
+        {introVideoMessage ? (
+          <p className="teacher-builder-message">{introVideoMessage}</p>
+        ) : null}
+      </section>
 
       <section className="teacher-builder-card">
         <div className="teacher-builder-intro">

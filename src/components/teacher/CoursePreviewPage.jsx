@@ -14,7 +14,7 @@ import {
   LockKeyhole,
   Video,
 } from "lucide-react";
-import { supabase, supabaseConfigError } from "../lib/supabase";
+import { supabase, supabaseConfigError } from "../../lib/supabase";
 
 const lessonContentTypes = [
   { value: "video", label: "Video" },
@@ -142,7 +142,10 @@ export default function CoursePreviewPage({ course, displayName, onBack }) {
       aria-label="Student course preview"
     >
       <header className="course-preview-topbar">
-        <p className="course-preview-brand">Syncra Learn</p>
+        <div className="course-preview-brand-group">
+          <p className="course-preview-brand">Syncra Learn</p>
+          <span>Student Preview</span>
+        </div>
 
         <div className="course-preview-top-actions">
           <button
@@ -538,21 +541,7 @@ function formatLessonBadge(item) {
     return item.label || "Lesson";
   }
 
-  return `Video - ${formatVideoDuration(item)}`;
-}
-
-function formatVideoDuration(item) {
-  if (!item?.duration) {
-    return "Preview";
-  }
-
-  const numericDuration = Number(item.duration);
-
-  if (Number.isFinite(numericDuration)) {
-    return `${numericDuration} min${numericDuration === 1 ? "" : "s"}`;
-  }
-
-  return String(item.duration);
+  return "Video";
 }
 
 function getVideoPreview(url) {

@@ -177,6 +177,53 @@ const VARK_LABELS = Object.fromEntries(
   VARK_OPTIONS.map((option) => [option.value, option.label])
 );
 
+const STYLE_LABELS = {
+  visual: "Visual",
+  aural: "Aural",
+  "read-write": "Read/Write",
+  kinesthetic: "Kinesthetic",
+};
+
+const VARK_STYLE_KEYS = {
+  v: ["visual"],
+  visual: ["visual"],
+  mild_visual: ["visual"],
+  strong_visual: ["visual"],
+  very_strong_visual: ["visual"],
+  a: ["aural"],
+  aural: ["aural"],
+  auditory: ["aural"],
+  mild_aural: ["aural"],
+  strong_aural: ["aural"],
+  very_strong_aural: ["aural"],
+  r: ["read-write"],
+  read_write: ["read-write"],
+  readwrite: ["read-write"],
+  "read-write": ["read-write"],
+  mild_read_write: ["read-write"],
+  strong_read_write: ["read-write"],
+  very_strong_read_write: ["read-write"],
+  k: ["kinesthetic"],
+  kinesthetic: ["kinesthetic"],
+  mild_kinesthetic: ["kinesthetic"],
+  strong_kinesthetic: ["kinesthetic"],
+  very_strong_kinesthetic: ["kinesthetic"],
+  va: ["visual", "aural"],
+  vr: ["visual", "read-write"],
+  vk: ["visual", "kinesthetic"],
+  ar: ["aural", "read-write"],
+  ak: ["aural", "kinesthetic"],
+  rk: ["read-write", "kinesthetic"],
+  var: ["visual", "aural", "read-write"],
+  vak: ["visual", "aural", "kinesthetic"],
+  vrk: ["visual", "read-write", "kinesthetic"],
+  ark: ["aural", "read-write", "kinesthetic"],
+  vark: ["visual", "aural", "read-write", "kinesthetic"],
+  vark_selective: ["visual", "aural", "read-write", "kinesthetic"],
+  vark_integrative: ["visual", "aural", "read-write", "kinesthetic"],
+  multimodal: ["visual", "aural", "read-write", "kinesthetic"],
+};
+
 const LEGACY_VARK_LABELS = {
   visual: "Visual",
   aural: "Aural",
@@ -187,4 +234,77 @@ const LEGACY_VARK_LABELS = {
 
 export function getVarkResultLabel(value) {
   return VARK_LABELS[value] || LEGACY_VARK_LABELS[value] || value;
+}
+
+export function getVarkStyleKeys(value = "") {
+  const rawValue = String(value).toLowerCase().trim();
+  const normalizedCode = rawValue
+    .replace(/read\s*\/?\s*write/g, "read_write")
+    .replace(/[\s-]+/g, "_");
+  const normalizedText = rawValue
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const styleKeys = [];
+
+  function addStyleKeys(keys) {
+    keys.forEach((key) => {
+      if (!styleKeys.includes(key)) {
+        styleKeys.push(key);
+      }
+    });
+  }
+
+  if (VARK_STYLE_KEYS[normalizedCode]) {
+    addStyleKeys(VARK_STYLE_KEYS[normalizedCode]);
+  }
+
+  if (/^[vark]+$/.test(rawValue)) {
+    addStyleKeys(rawValue.split("").flatMap((part) => VARK_STYLE_KEYS[part] || []));
+  }
+
+  const delimitedCodeParts = rawValue.split(/[^a-z]+/).filter(Boolean);
+
+  if (
+    delimitedCodeParts.length > 1 &&
+    delimitedCodeParts.every((part) => /^[vark]$/.test(part))
+  ) {
+    addStyleKeys(
+      delimitedCodeParts.flatMap((part) => VARK_STYLE_KEYS[part] || [])
+    );
+  }
+
+  if (/\bvisual\b|\bvisuals\b|\bvideo\b|\bdiagram/.test(normalizedText)) {
+    addStyleKeys(["visual"]);
+  }
+
+  if (/\baural\b|\bauditory\b|\blisten|\bspeech|\bsound/.test(normalizedText)) {
+    addStyleKeys(["aural"]);
+  }
+
+  if (
+    /\bread\s*\/?\s*write\b|\breadwrite\b|\breading\b|\btext\b|\bnotes\b/.test(
+      normalizedText
+    )
+  ) {
+    addStyleKeys(["read-write"]);
+  }
+
+  if (
+    /\bkinesthetic\b|\bpractical\b|\bhands-on\b|\bactivity/.test(normalizedText)
+  ) {
+    addStyleKeys(["kinesthetic"]);
+  }
+
+  return styleKeys;
+}
+
+export function getVarkStyleLabel(value) {
+  const styleKeys = getVarkStyleKeys(value);
+
+  if (styleKeys.length === 0) {
+    return "Not set";
+  }
+
+  return styleKeys.map((styleKey) => STYLE_LABELS[styleKey]).join(" + ");
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { continueWithGoogle, signInWithEmail } from "../lib/supabase";
+import { continueWithGoogle, signInWithEmail } from "../../lib/supabase";
 
 export default function LoginPage({
   notice,

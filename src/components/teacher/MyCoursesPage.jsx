@@ -10,9 +10,13 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { supabase, supabaseConfigError } from "../lib/supabase";
+import { supabase, supabaseConfigError } from "../../lib/supabase";
 
 const COURSE_IMAGES_BUCKET = "course_img";
+const COURSE_SELECT_COLUMNS =
+  "cid, name, description, level, status, img_url, amount, intro_vid_url";
+const COURSE_SELECT_COLUMNS_FALLBACK =
+  "cid, name, description, level, status, img_url, amount";
 
 const courseLevels = [
   {
@@ -74,11 +78,28 @@ export default function MyCoursesPage({
       setLoadingCourses(true);
       setMessage("");
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("course")
-        .select("cid, name, description, level, status, img_url, amount")
+        .select(COURSE_SELECT_COLUMNS)
         .eq("tid", teacherProfile.tid)
         .order("cid", { ascending: false });
+
+      if (error && error.message?.includes("intro_vid_url")) {
+        const fallbackResult = await supabase
+          .from("course")
+          .select(COURSE_SELECT_COLUMNS_FALLBACK)
+          .eq("tid", teacherProfile.tid)
+          .order("cid", { ascending: false });
+
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+
+        if (!error) {
+          setMessage(
+            "Courses loaded, but intro_vid_url was not found in the course table."
+          );
+        }
+      }
 
       if (ignore) {
         return;
@@ -206,7 +227,7 @@ export default function MyCoursesPage({
         })
         .eq("cid", editingCourse.cid)
         .eq("tid", teacherProfile.tid)
-        .select("cid, name, description, level, status, img_url, amount")
+        .select(COURSE_SELECT_COLUMNS)
         .single();
 
       if (error) {
@@ -237,7 +258,7 @@ export default function MyCoursesPage({
         tid: teacherProfile.tid,
         status: "draft",
       })
-      .select("cid, name, description, level, status, img_url, amount")
+      .select(COURSE_SELECT_COLUMNS)
       .single();
 
     if (error) {
@@ -254,6 +275,7 @@ export default function MyCoursesPage({
       level: data?.level || level,
       status: data?.status || "draft",
       img_url: data?.img_url || imageUrl,
+      intro_vid_url: data?.intro_vid_url || null,
     });
 
     setCourses((currentCourses) => [createdCourse, ...currentCourses]);
@@ -322,7 +344,7 @@ export default function MyCoursesPage({
         .update({ status: nextStatus })
         .eq("cid", course.cid)
         .eq("tid", teacherProfile.tid)
-      .select("cid, name, description, level, status, img_url, amount")
+      .select(COURSE_SELECT_COLUMNS)
       .single();
 
     if (error) {
@@ -380,6 +402,8 @@ export default function MyCoursesPage({
           </span>
         </div>
       </div>
+
+      {message ? <p className="teacher-course-page-message">{message}</p> : null}
 
       <section className="teacher-course-grid" aria-label="Course list">
         {loadingCourses ? (
@@ -674,7 +698,7 @@ function LevelDropdown({ value, onChange, disabled, open, onOpenChange }) {
       </button>
 
       {open ? (
-        <div className="student-select-menu teacher-level-menu top-full mt-2">
+        <div className="student-select-menu teacher-level-menu">
           <div className="space-y-1" role="listbox">
             <p className="student-select-group">Course level</p>
             {courseLevels.map((courseLevel) => {
@@ -750,6 +774,8 @@ function mapCourseRowToCard(row) {
     progress: 0,
     tone: getLevelTone(levelValue),
     imgUrl: row?.img_url || null,
+    introVideoUrl: row?.intro_vid_url || null,
+    intro_vid_url: row?.intro_vid_url || null,
   };
 }
 
