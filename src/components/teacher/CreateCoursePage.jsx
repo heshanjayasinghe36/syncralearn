@@ -38,8 +38,7 @@ const lessonContentConfig = {
   quiz: {
     table: "quize",
     idColumn: "qid",
-    select: "qid, name, url, lid",
-    resourceColumn: "url",
+    select: "qid, name, lid, pass_threshold",
   },
 };
 
@@ -50,9 +49,11 @@ export default function CreateCoursePage({ course, onBack }) {
   const [expandedLessons, setExpandedLessons] = useState({});
   const [lessonContent, setLessonContent] = useState({});
   const [contentDrafts, setContentDrafts] = useState({});
+  const [quizBuilder, setQuizBuilder] = useState(null);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [savingLesson, setSavingLesson] = useState(false);
   const [savingContent, setSavingContent] = useState(false);
+  const [savingQuiz, setSavingQuiz] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
   const [introVideoUrl, setIntroVideoUrl] = useState(
     () => course?.intro_vid_url || course?.introVideoUrl || ""
@@ -174,6 +175,26 @@ export default function CreateCoursePage({ course, onBack }) {
       ...currentLessons,
       [lessonId]: true,
     }));
+
+    if (type === "quiz") {
+      const lesson = lessons.find((currentLesson) => currentLesson.id === lessonId);
+
+      setContentDrafts((currentDrafts) => {
+        const nextDrafts = { ...currentDrafts };
+        delete nextDrafts[lessonId];
+        return nextDrafts;
+      });
+      setQuizBuilder({
+        mode: "create",
+        lessonId,
+        title: lesson?.name ? `${lesson.name} Quiz` : "",
+        passThreshold: "70",
+        questions: [createQuizQuestion()],
+        message: "",
+      });
+      return;
+    }
+
     setContentDrafts((currentDrafts) => ({
       ...currentDrafts,
       [lessonId]: {
@@ -184,6 +205,53 @@ export default function CreateCoursePage({ course, onBack }) {
         file: null,
       },
     }));
+  }
+
+  async function editQuizContent(lessonId, item) {
+    if (!item?.databaseId) {
+      setMessage("Quiz ID was not found.");
+      return;
+    }
+
+    if (!supabase) {
+      setMessage(supabaseConfigError || "Supabase is not configured.");
+      return;
+    }
+
+    setSavingQuiz(true);
+    setMessage("Loading quiz builder...");
+
+    const { data, error } = await supabase
+      .from("quize_questions")
+      .select(
+        "qqid, question, type, quize_options(oid, option_text, is_correct)"
+      )
+      .eq("qid", item.databaseId)
+      .order("qqid", { ascending: true });
+
+    if (error) {
+      setMessage(`Quiz load failed: ${error.message}`);
+      setSavingQuiz(false);
+      return;
+    }
+
+    setQuizBuilder({
+      mode: "edit",
+      quizId: item.databaseId,
+      lessonId,
+      title: item.title || "",
+      passThreshold:
+        item.passThreshold === null || item.passThreshold === undefined
+          ? ""
+          : String(item.passThreshold),
+      questions:
+        data?.length > 0
+          ? data.map(mapQuizQuestionToBuilder)
+          : [createQuizQuestion()],
+      message: "",
+    });
+    setSavingQuiz(false);
+    setMessage("");
   }
 
   function updateContentDraft(lessonId, field, value) {
@@ -202,6 +270,385 @@ export default function CreateCoursePage({ course, onBack }) {
       delete nextDrafts[lessonId];
       return nextDrafts;
     });
+  }
+
+  function closeQuizBuilder() {
+    if (savingQuiz) {
+      return;
+    }
+
+    setQuizBuilder(null);
+  }
+
+  function updateQuizBuilderField(field, value) {
+    setQuizBuilder((currentBuilder) =>
+      currentBuilder
+        ? {
+            ...currentBuilder,
+            [field]: value,
+            message: "",
+          }
+        : currentBuilder
+    );
+  }
+
+  function updateQuizQuestion(questionId, field, value) {
+    setQuizBuilder((currentBuilder) =>
+      currentBuilder
+        ? {
+            ...currentBuilder,
+            message: "",
+            questions: currentBuilder.questions.map((question) =>
+              question.id === questionId
+                ? {
+                    ...question,
+                    [field]: value,
+                  }
+                : question
+            ),
+          }
+        : currentBuilder
+    );
+  }
+
+  function updateQuizOption(questionId, optionId, value) {
+    setQuizBuilder((currentBuilder) =>
+      currentBuilder
+        ? {
+            ...currentBuilder,
+            message: "",
+            questions: currentBuilder.questions.map((question) =>
+              question.id === questionId
+                ? {
+                    ...question,
+                    options: question.options.map((option) =>
+                      option.id === optionId
+                        ? {
+                            ...option,
+                            text: value,
+                          }
+                        : option
+                    ),
+                  }
+                : question
+            ),
+          }
+        : currentBuilder
+    );
+  }
+
+  function setCorrectQuizOption(questionId, optionId) {
+    setQuizBuilder((currentBuilder) =>
+      currentBuilder
+        ? {
+            ...currentBuilder,
+            message: "",
+            questions: currentBuilder.questions.map((question) =>
+              question.id === questionId
+                ? {
+                    ...question,
+                    options: question.options.map((option) => ({
+                      ...option,
+                      isCorrect: option.id === optionId,
+                    })),
+                  }
+                : question
+            ),
+          }
+        : currentBuilder
+    );
+  }
+
+  function addQuizQuestion() {
+    setQuizBuilder((currentBuilder) =>
+      currentBuilder
+        ? {
+            ...currentBuilder,
+            message: "",
+            questions: [...currentBuilder.questions, createQuizQuestion()],
+          }
+        : currentBuilder
+    );
+  }
+
+  function removeQuizQuestion(questionId) {
+    setQuizBuilder((currentBuilder) => {
+      if (!currentBuilder) {
+        return currentBuilder;
+      }
+
+      if (currentBuilder.questions.length <= 1) {
+        return {
+          ...currentBuilder,
+          message: "At least one question is required.",
+        };
+      }
+
+      return {
+        ...currentBuilder,
+        message: "",
+        questions: currentBuilder.questions.filter(
+          (question) => question.id !== questionId
+        ),
+      };
+    });
+  }
+
+  function addQuizOption(questionId) {
+    setQuizBuilder((currentBuilder) =>
+      currentBuilder
+        ? {
+            ...currentBuilder,
+            message: "",
+            questions: currentBuilder.questions.map((question) =>
+              question.id === questionId
+                ? {
+                    ...question,
+                    options: [...question.options, createQuizOption(false)],
+                  }
+                : question
+            ),
+          }
+        : currentBuilder
+    );
+  }
+
+  function removeQuizOption(questionId, optionId) {
+    setQuizBuilder((currentBuilder) => {
+      if (!currentBuilder) {
+        return currentBuilder;
+      }
+
+      return {
+        ...currentBuilder,
+        message: "",
+        questions: currentBuilder.questions.map((question) => {
+          if (question.id !== questionId) {
+            return question;
+          }
+
+          if (question.options.length <= 2) {
+            return question;
+          }
+
+          const nextOptions = question.options.filter(
+            (option) => option.id !== optionId
+          );
+          const hasCorrectOption = nextOptions.some((option) => option.isCorrect);
+
+          return {
+            ...question,
+            options: hasCorrectOption
+              ? nextOptions
+              : nextOptions.map((option, index) => ({
+                  ...option,
+                  isCorrect: index === 0,
+                })),
+          };
+        }),
+      };
+    });
+  }
+
+  async function saveQuizBuilder(event) {
+    event.preventDefault();
+
+    if (!quizBuilder) {
+      return;
+    }
+
+    if (!supabase) {
+      setQuizBuilder((currentBuilder) =>
+        currentBuilder
+          ? {
+              ...currentBuilder,
+              message: supabaseConfigError || "Supabase is not configured.",
+            }
+          : currentBuilder
+      );
+      return;
+    }
+
+    const lesson = lessons.find(
+      (currentLesson) => currentLesson.id === quizBuilder.lessonId
+    );
+
+    if (!lesson?.databaseId) {
+      setQuizBuilder((currentBuilder) =>
+        currentBuilder
+          ? {
+              ...currentBuilder,
+              message: "Lesson ID was not found.",
+            }
+          : currentBuilder
+      );
+      return;
+    }
+
+    const cleanQuiz = normalizeQuizBuilder(quizBuilder);
+
+    if (cleanQuiz.error) {
+      setQuizBuilder((currentBuilder) =>
+        currentBuilder
+          ? {
+              ...currentBuilder,
+              message: cleanQuiz.error,
+            }
+          : currentBuilder
+      );
+      return;
+    }
+
+    setSavingQuiz(true);
+    setQuizBuilder((currentBuilder) =>
+      currentBuilder
+        ? {
+            ...currentBuilder,
+            message: "",
+          }
+        : currentBuilder
+    );
+
+    if (quizBuilder.mode === "edit" && quizBuilder.quizId) {
+      const { data: quizRow, error: quizError } = await supabase
+        .from("quize")
+        .update({
+          name: cleanQuiz.title,
+          pass_threshold: cleanQuiz.passThreshold,
+        })
+        .eq("qid", quizBuilder.quizId)
+        .select(lessonContentConfig.quiz.select)
+        .single();
+
+      if (quizError) {
+        setQuizBuilder((currentBuilder) =>
+          currentBuilder
+            ? {
+                ...currentBuilder,
+                message: `Quiz update failed: ${quizError.message}`,
+              }
+            : currentBuilder
+        );
+        setSavingQuiz(false);
+        return;
+      }
+
+      const { error: deleteQuestionsError } = await supabase
+        .from("quize_questions")
+        .delete()
+        .eq("qid", quizBuilder.quizId);
+
+      if (deleteQuestionsError) {
+        setQuizBuilder((currentBuilder) =>
+          currentBuilder
+            ? {
+                ...currentBuilder,
+                message: `Old questions cleanup failed: ${deleteQuestionsError.message}`,
+              }
+            : currentBuilder
+        );
+        setSavingQuiz(false);
+        return;
+      }
+
+      const questionSaveError = await saveQuizQuestions(
+        quizBuilder.quizId,
+        cleanQuiz.questions
+      );
+
+      if (questionSaveError) {
+        setQuizBuilder((currentBuilder) =>
+          currentBuilder
+            ? {
+                ...currentBuilder,
+                message: questionSaveError,
+              }
+            : currentBuilder
+        );
+        setSavingQuiz(false);
+        return;
+      }
+
+      const nextItem = mapLessonContentRow(
+        quizRow,
+        "quiz",
+        getContentTypeLabel("quiz")
+      );
+
+      setLessonContent((currentContent) => ({
+        ...currentContent,
+        [quizBuilder.lessonId]: (currentContent[quizBuilder.lessonId] || []).map(
+          (contentItem) =>
+            contentItem.type === "quiz" &&
+            contentItem.databaseId === quizBuilder.quizId
+              ? nextItem
+              : contentItem
+        ),
+      }));
+      setQuizBuilder(null);
+      setSavingQuiz(false);
+      setMessage("");
+      return;
+    }
+
+    const { data: quizRow, error: quizError } = await supabase
+      .from("quize")
+      .insert({
+        name: cleanQuiz.title,
+        lid: lesson.databaseId,
+        pass_threshold: cleanQuiz.passThreshold,
+      })
+      .select(lessonContentConfig.quiz.select)
+      .single();
+
+    if (quizError) {
+      setQuizBuilder((currentBuilder) =>
+        currentBuilder
+          ? {
+              ...currentBuilder,
+              message: `Quiz creation failed: ${quizError.message}`,
+            }
+          : currentBuilder
+      );
+      setSavingQuiz(false);
+      return;
+    }
+
+    const questionSaveError = await saveQuizQuestions(
+      quizRow.qid,
+      cleanQuiz.questions
+    );
+
+    if (questionSaveError) {
+      await deleteQuizDraft(quizRow.qid);
+      setQuizBuilder((currentBuilder) =>
+        currentBuilder
+          ? {
+              ...currentBuilder,
+              message: questionSaveError,
+            }
+          : currentBuilder
+      );
+      setSavingQuiz(false);
+      return;
+    }
+
+    const nextItem = mapLessonContentRow(
+      quizRow,
+      "quiz",
+      getContentTypeLabel("quiz")
+    );
+
+    setLessonContent((currentContent) => ({
+      ...currentContent,
+      [quizBuilder.lessonId]: [
+        ...(currentContent[quizBuilder.lessonId] || []),
+        nextItem,
+      ],
+    }));
+    setQuizBuilder(null);
+    setSavingQuiz(false);
+    setMessage("");
   }
 
   async function addLessonContent(lessonId) {
@@ -279,8 +726,6 @@ export default function CreateCoursePage({ course, onBack }) {
       payload.url = resource || null;
     } else if (draft.type === "material") {
       payload.file = materialFileUrl;
-    } else {
-      payload.url = resource || null;
     }
 
     const { data, error } = await supabase
@@ -895,6 +1340,7 @@ export default function CreateCoursePage({ course, onBack }) {
                     items={lessonContent[lesson.id] || []}
                     lessonId={lesson.id}
                     onAdd={startContentDraft}
+                    onEditQuiz={editQuizContent}
                     onCancelDraft={cancelContentDraft}
                     onSaveDraft={addLessonContent}
                     onUpdateDraft={updateContentDraft}
@@ -961,7 +1407,206 @@ export default function CreateCoursePage({ course, onBack }) {
           <p className="teacher-publish-message">{publishMessage}</p>
         ) : null}
       </section>
+
+      {quizBuilder ? (
+        <QuizBuilderModal
+          builder={quizBuilder}
+          saving={savingQuiz}
+          onClose={closeQuizBuilder}
+          onSubmit={saveQuizBuilder}
+          onFieldChange={updateQuizBuilderField}
+          onQuestionChange={updateQuizQuestion}
+          onOptionChange={updateQuizOption}
+          onCorrectOptionChange={setCorrectQuizOption}
+          onAddQuestion={addQuizQuestion}
+          onRemoveQuestion={removeQuizQuestion}
+          onAddOption={addQuizOption}
+          onRemoveOption={removeQuizOption}
+        />
+      ) : null}
     </main>
+  );
+}
+
+function QuizBuilderModal({
+  builder,
+  saving,
+  onClose,
+  onSubmit,
+  onFieldChange,
+  onQuestionChange,
+  onOptionChange,
+  onCorrectOptionChange,
+  onAddQuestion,
+  onRemoveQuestion,
+  onAddOption,
+  onRemoveOption,
+}) {
+  return (
+    <div className="teacher-course-modal-backdrop">
+      <form className="teacher-quiz-modal" onSubmit={onSubmit}>
+        <div className="teacher-course-modal-header">
+          <div>
+            <p>Quiz Builder</p>
+            <h3>
+              {builder.mode === "edit" ? "Edit lesson quiz" : "Create lesson quiz"}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            aria-label="Close quiz builder"
+          >
+            <X aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="teacher-quiz-main-fields">
+          <label className="teacher-course-form-field">
+            <span>Quiz name</span>
+            <input
+              type="text"
+              value={builder.title}
+              onChange={(event) => onFieldChange("title", event.target.value)}
+              placeholder="e.g. Lesson checkpoint"
+              disabled={saving}
+              autoFocus
+            />
+          </label>
+
+          <label className="teacher-course-form-field">
+            <span>
+              Pass threshold <small>Optional</small>
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              value={builder.passThreshold}
+              onChange={(event) =>
+                onFieldChange("passThreshold", event.target.value)
+              }
+              placeholder="70"
+              disabled={saving}
+            />
+          </label>
+        </div>
+
+        <div className="teacher-quiz-questions">
+          {builder.questions.map((question, questionIndex) => (
+            <section key={question.id} className="teacher-quiz-question-card">
+              <div className="teacher-quiz-question-head">
+                <div>
+                  <span>Question {questionIndex + 1}</span>
+                  <p>Single correct answer</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemoveQuestion(question.id)}
+                  disabled={saving || builder.questions.length <= 1}
+                  aria-label={`Remove question ${questionIndex + 1}`}
+                >
+                  <Trash2 aria-hidden="true" />
+                </button>
+              </div>
+
+              <label className="teacher-course-form-field">
+                <span>Question text</span>
+                <input
+                  type="text"
+                  value={question.question}
+                  onChange={(event) =>
+                    onQuestionChange(question.id, "question", event.target.value)
+                  }
+                  placeholder="Write your question"
+                  disabled={saving}
+                />
+              </label>
+
+              <div className="teacher-quiz-options">
+                {question.options.map((option, optionIndex) => (
+                  <label key={option.id} className="teacher-quiz-option-row">
+                    <input
+                      type="radio"
+                      name={`correct-option-${question.id}`}
+                      checked={option.isCorrect}
+                      onChange={() =>
+                        onCorrectOptionChange(question.id, option.id)
+                      }
+                      disabled={saving}
+                      aria-label={`Mark option ${optionIndex + 1} as correct`}
+                    />
+                    <span>{String.fromCharCode(65 + optionIndex)}</span>
+                    <input
+                      type="text"
+                      value={option.text}
+                      onChange={(event) =>
+                        onOptionChange(
+                          question.id,
+                          option.id,
+                          event.target.value
+                        )
+                      }
+                      placeholder={`Option ${optionIndex + 1}`}
+                      disabled={saving}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onRemoveOption(question.id, option.id)}
+                      disabled={saving || question.options.length <= 2}
+                      aria-label={`Remove option ${optionIndex + 1}`}
+                    >
+                      <X aria-hidden="true" />
+                    </button>
+                  </label>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="teacher-quiz-soft-action"
+                onClick={() => onAddOption(question.id)}
+                disabled={saving}
+              >
+                <CirclePlus aria-hidden="true" />
+                <span>Add option</span>
+              </button>
+            </section>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="teacher-quiz-add-question"
+          onClick={onAddQuestion}
+          disabled={saving}
+        >
+          <CirclePlus aria-hidden="true" />
+          <span>Add question</span>
+        </button>
+
+        {builder.message ? (
+          <p className="teacher-course-modal-message">{builder.message}</p>
+        ) : null}
+
+        <div className="teacher-course-modal-actions">
+          <button type="button" onClick={onClose} disabled={saving}>
+            Cancel
+          </button>
+          <button type="submit" disabled={saving}>
+            {saving
+              ? builder.mode === "edit"
+                ? "Updating quiz..."
+                : "Saving quiz..."
+              : builder.mode === "edit"
+                ? "Update quiz"
+                : "Save quiz"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -970,6 +1615,7 @@ function LessonContentPanel({
   items,
   lessonId,
   onAdd,
+  onEditQuiz,
   onCancelDraft,
   onSaveDraft,
   onUpdateDraft,
@@ -1038,7 +1684,8 @@ function LessonContentPanel({
                 {draft.file?.name || "No file chosen"}
               </span>
             </label>
-          ) : (
+          ) : null}
+          {draft.type === "video" ? (
             <input
               type="text"
               value={draft.resource}
@@ -1048,7 +1695,7 @@ function LessonContentPanel({
               placeholder="URL"
               disabled={saving}
             />
-          )}
+          ) : null}
           {draft.type === "video" ? (
             <input
               type="text"
@@ -1105,8 +1752,33 @@ function LessonContentPanel({
                   {previewItemId === item.id ? "Hide preview" : "Preview"}
                 </button>
               ) : null}
+              {item.type === "material" && item.resource ? (
+                <button
+                  type="button"
+                  className="teacher-video-preview-button"
+                  onClick={() =>
+                    setPreviewItemId((currentItemId) =>
+                      currentItemId === item.id ? null : item.id
+                    )
+                  }
+                >
+                  {previewItemId === item.id ? "Hide preview" : "Preview"}
+                </button>
+              ) : null}
+              {item.type === "quiz" ? (
+                <button
+                  type="button"
+                  className="teacher-video-preview-button"
+                  onClick={() => onEditQuiz(lessonId, item)}
+                >
+                  Edit
+                </button>
+              ) : null}
               {item.type === "video" && previewItemId === item.id ? (
                 <VideoPreview url={item.resource} title={item.title} />
+              ) : null}
+              {item.type === "material" && previewItemId === item.id ? (
+                <MaterialPreview url={item.resource} title={item.title} />
               ) : null}
             </article>
           ))
@@ -1117,6 +1789,17 @@ function LessonContentPanel({
         )}
       </div>
     </section>
+  );
+}
+
+function MaterialPreview({ url, title }) {
+  return (
+    <div className="teacher-material-preview">
+      <iframe src={url} title={`${title} material preview`} />
+      <a href={url} target="_blank" rel="noreferrer">
+        Open PDF
+      </a>
+    </div>
   );
 }
 
@@ -1166,6 +1849,166 @@ function ContentTypeIcon({ type }) {
   }
 
   return <ListChecks aria-hidden="true" />;
+}
+
+function createQuizOption(isCorrect = false) {
+  return {
+    id: `option-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    text: "",
+    isCorrect,
+  };
+}
+
+function createQuizQuestion() {
+  return {
+    id: `question-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    question: "",
+    type: "single_choice",
+    options: [createQuizOption(true), createQuizOption(false)],
+  };
+}
+
+function mapQuizQuestionToBuilder(row) {
+  const options = (row?.quize_options || [])
+    .slice()
+    .sort((firstOption, secondOption) => {
+      const firstId = Number(firstOption?.oid) || 0;
+      const secondId = Number(secondOption?.oid) || 0;
+      return firstId - secondId;
+    })
+    .map((option) => ({
+      id: `option-${option.oid}`,
+      text: option.option_text || "",
+      isCorrect: Boolean(option.is_correct),
+    }));
+
+  return {
+    id: `question-${row?.qqid || Date.now()}`,
+    question: row?.question || "",
+    type: row?.type || "single_choice",
+    options:
+      options.length >= 2
+        ? ensureQuizQuestionHasCorrectOption(options)
+        : [createQuizOption(true), createQuizOption(false)],
+  };
+}
+
+function ensureQuizQuestionHasCorrectOption(options) {
+  if (options.some((option) => option.isCorrect)) {
+    return options;
+  }
+
+  return options.map((option, index) => ({
+    ...option,
+    isCorrect: index === 0,
+  }));
+}
+
+function normalizeQuizBuilder(builder) {
+  const title = builder.title.trim();
+
+  if (!title) {
+    return { error: "Quiz name is required." };
+  }
+
+  const thresholdText = String(builder.passThreshold || "").trim();
+  let passThreshold = null;
+
+  if (thresholdText) {
+    passThreshold = Number(thresholdText);
+
+    if (
+      Number.isNaN(passThreshold) ||
+      passThreshold < 0 ||
+      passThreshold > 100
+    ) {
+      return { error: "Pass threshold must be between 0 and 100." };
+    }
+  }
+
+  const questions = [];
+
+  for (const [questionIndex, question] of builder.questions.entries()) {
+    const questionText = question.question.trim();
+
+    if (!questionText) {
+      return { error: `Question ${questionIndex + 1} text is required.` };
+    }
+
+    const options = question.options
+      .map((option) => ({
+        text: option.text.trim(),
+        isCorrect: option.isCorrect,
+      }))
+      .filter((option) => option.text);
+
+    if (options.length < 2) {
+      return {
+        error: `Question ${questionIndex + 1} needs at least two options.`,
+      };
+    }
+
+    if (!options.some((option) => option.isCorrect)) {
+      return {
+        error: `Question ${questionIndex + 1} needs one correct option.`,
+      };
+    }
+
+    questions.push({
+      question: questionText,
+      type: question.type || "single_choice",
+      options,
+    });
+  }
+
+  return {
+    title,
+    passThreshold,
+    questions,
+    error: "",
+  };
+}
+
+async function deleteQuizDraft(quizId) {
+  if (!quizId || !supabase) {
+    return;
+  }
+
+  await supabase.from("quize").delete().eq("qid", quizId);
+}
+
+async function saveQuizQuestions(quizId, questions) {
+  for (const question of questions) {
+    const { data: questionRow, error: questionError } = await supabase
+      .from("quize_questions")
+      .insert({
+        qid: quizId,
+        question: question.question,
+        type: question.type,
+      })
+      .select("qqid")
+      .single();
+
+    if (questionError) {
+      return `Question save failed: ${questionError.message}`;
+    }
+
+    const optionRows = question.options.map((option) => ({
+      qqid: questionRow.qqid,
+      option_text: option.text,
+      is_correct: option.isCorrect,
+    }));
+
+    const { error: optionError } = await supabase
+      .from("quize_options")
+      .insert(optionRows);
+
+    if (optionError) {
+      return `Option save failed: ${optionError.message}`;
+    }
+  }
+
+  return "";
 }
 
 async function loadLessonContent(lessons) {
@@ -1238,7 +2081,9 @@ async function loadLessonContent(lessons) {
 function mapLessonContentRow(row, type, fallbackLabel = "Item") {
   const config = lessonContentConfig[type];
   const idValue = row?.[config.idColumn];
-  const resourceValue = row?.[config.resourceColumn] || "";
+  const resourceValue = config.resourceColumn
+    ? row?.[config.resourceColumn] || ""
+    : "";
 
   return {
     id: `${type}-${idValue || row?.name}`,
@@ -1248,6 +2093,7 @@ function mapLessonContentRow(row, type, fallbackLabel = "Item") {
     title: row?.name || "Untitled",
     resource: resourceValue,
     description: row?.description || "",
+    passThreshold: row?.pass_threshold ?? null,
     raw: row,
   };
 }

@@ -38,8 +38,7 @@ const lessonContentConfig = {
   quiz: {
     table: "quize",
     idColumn: "qid",
-    select: "qid, name, url, lid",
-    resourceColumn: "url",
+    select: "qid, name, lid, pass_threshold",
   },
 };
 
@@ -322,6 +321,8 @@ export default function CoursePreviewPage({ course, displayName, onBack }) {
               url={activeContent.resource}
               title={activeContent.title}
             />
+          ) : activeContent?.type === "quiz" ? (
+            <PreviewQuiz item={activeContent} />
           ) : activeContent?.resource ? (
             <a
               className="course-preview-main-resource"
@@ -560,7 +561,9 @@ async function loadPreviewLessonContent(lessons) {
 function mapPreviewLessonContentRow(row, type, fallbackLabel = "Content") {
   const config = lessonContentConfig[type];
   const idValue = row?.[config.idColumn];
-  const resourceValue = row?.[config.resourceColumn] || "";
+  const resourceValue = config.resourceColumn
+    ? row?.[config.resourceColumn] || ""
+    : "";
 
   return {
     id: `${type}-${idValue || row?.name}`,
@@ -570,6 +573,7 @@ function mapPreviewLessonContentRow(row, type, fallbackLabel = "Content") {
     title: row?.name || "Untitled",
     resource: resourceValue,
     description: row?.description || "",
+    passThreshold: row?.pass_threshold ?? null,
     duration:
       row?.duration ||
       row?.length ||
@@ -577,6 +581,21 @@ function mapPreviewLessonContentRow(row, type, fallbackLabel = "Content") {
       row?.duration_minutes ||
       null,
   };
+}
+
+function PreviewQuiz({ item }) {
+  return (
+    <div className="course-preview-quiz">
+      <ListChecks aria-hidden="true" />
+      <div>
+        <span>Quiz</span>
+        <h4>{item?.title || "Lesson quiz"}</h4>
+        {item?.passThreshold ? (
+          <p>Pass threshold: {item.passThreshold}%</p>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 function formatLessonBadge(item) {
