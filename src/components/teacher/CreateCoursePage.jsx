@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
 
+const MATERIALS_BUCKET = "materials";
+
 const lessonContentTypes = [
   { value: "video", label: "Add Video", itemLabel: "Video" },
   { value: "material", label: "Add Materials", itemLabel: "Material" },
@@ -55,6 +57,9 @@ export default function CreateCoursePage({ course, onBack }) {
   const [introVideoUrl, setIntroVideoUrl] = useState(
     () => course?.intro_vid_url || course?.introVideoUrl || ""
   );
+  const [courseDescription, setCourseDescription] = useState(
+    () => course?.description || ""
+  );
   const [savingIntroVideo, setSavingIntroVideo] = useState(false);
   const [showIntroVideoPreview, setShowIntroVideoPreview] = useState(false);
   const [introVideoMessage, setIntroVideoMessage] = useState("");
@@ -76,22 +81,24 @@ export default function CreateCoursePage({ course, onBack }) {
   useEffect(() => {
     let ignore = false;
 
-    async function loadIntroVideo() {
+    async function loadCoursePreviewDetails() {
       const passedIntroUrl = course?.intro_vid_url || course?.introVideoUrl;
 
       if (passedIntroUrl) {
         setIntroVideoUrl(passedIntroUrl);
-        return;
+      } else {
+        setIntroVideoUrl("");
       }
 
+      setCourseDescription(course?.description || "");
+
       if (!courseId || !supabase) {
-        setIntroVideoUrl("");
         return;
       }
 
       const { data, error } = await supabase
         .from("course")
-        .select("intro_vid_url")
+        .select("intro_vid_url, description")
         .eq("cid", courseId)
         .maybeSingle();
 
@@ -101,15 +108,16 @@ export default function CreateCoursePage({ course, onBack }) {
 
       if (!error) {
         setIntroVideoUrl(data?.intro_vid_url || "");
+        setCourseDescription(data?.description || "");
       }
     }
 
-    void loadIntroVideo();
+    void loadCoursePreviewDetails();
 
     return () => {
       ignore = true;
     };
-  }, [course?.intro_vid_url, course?.introVideoUrl, courseId]);
+  }, [course?.description, course?.intro_vid_url, course?.introVideoUrl, courseId]);
 
   async function handleSaveIntroVideo(event) {
     event.preventDefault();
@@ -125,13 +133,17 @@ export default function CreateCoursePage({ course, onBack }) {
     }
 
     const cleanIntroVideoUrl = introVideoUrl.trim();
+    const cleanDescription = courseDescription.trim();
 
     setSavingIntroVideo(true);
     setIntroVideoMessage("");
 
     const { error } = await supabase
       .from("course")
-      .update({ intro_vid_url: cleanIntroVideoUrl || null })
+      .update({
+        intro_vid_url: cleanIntroVideoUrl || null,
+        description: cleanDescription || null,
+      })
       .eq("cid", courseId);
 
     if (error) {
@@ -141,10 +153,11 @@ export default function CreateCoursePage({ course, onBack }) {
     }
 
     setIntroVideoUrl(cleanIntroVideoUrl);
+    setCourseDescription(cleanDescription);
     setIntroVideoMessage(
-      cleanIntroVideoUrl
-        ? "Introduction video saved."
-        : "Introduction video removed."
+      cleanIntroVideoUrl || cleanDescription
+        ? "Course preview details saved."
+        : "Course preview details cleared."
     );
     setSavingIntroVideo(false);
   }
@@ -163,7 +176,13 @@ export default function CreateCoursePage({ course, onBack }) {
     }));
     setContentDrafts((currentDrafts) => ({
       ...currentDrafts,
-      [lessonId]: { type, title: "", resource: "", description: "" },
+      [lessonId]: {
+        type,
+        title: "",
+        resource: "",
+        description: "",
+        file: null,
+      },
     }));
   }
 
@@ -190,9 +209,20 @@ export default function CreateCoursePage({ course, onBack }) {
     const title = draft?.title?.trim();
     const resource = draft?.resource?.trim();
     const description = draft?.description?.trim();
+    const materialFile = draft?.file || null;
 
     if (!draft?.type || !title) {
       setMessage("Content title is required.");
+      return;
+    }
+
+    if (draft.type === "material" && !materialFile) {
+      setMessage("Choose a PDF file for the material.");
+      return;
+    }
+
+    if (draft.type === "material" && !isPdfFile(materialFile)) {
+      setMessage("Only PDF material files are supported.");
       return;
     }
 
@@ -209,6 +239,36 @@ export default function CreateCoursePage({ course, onBack }) {
       return;
     }
 
+    setSavingContent(true);
+    setMessage("");
+
+    let materialFileUrl = resource || null;
+
+    if (draft.type === "material") {
+      const safeFileName = materialFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${courseId}/${lesson.databaseId}/${Date.now()}-${safeFileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(MATERIALS_BUCKET)
+        .upload(filePath, materialFile, {
+          cacheControl: "3600",
+          contentType: materialFile.type || "application/pdf",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setMessage(`Material upload failed: ${uploadError.message}`);
+        setSavingContent(false);
+        return;
+      }
+
+      const { data: publicData } = supabase.storage
+        .from(MATERIALS_BUCKET)
+        .getPublicUrl(filePath);
+
+      materialFileUrl = publicData.publicUrl || filePath;
+    }
+
     const payload = {
       name: title,
       lid: lesson.databaseId,
@@ -218,13 +278,10 @@ export default function CreateCoursePage({ course, onBack }) {
       payload.description = description || null;
       payload.url = resource || null;
     } else if (draft.type === "material") {
-      payload.file = resource || null;
+      payload.file = materialFileUrl;
     } else {
       payload.url = resource || null;
     }
-
-    setSavingContent(true);
-    setMessage("");
 
     const { data, error } = await supabase
       .from(config.table)
@@ -638,6 +695,20 @@ export default function CreateCoursePage({ course, onBack }) {
             />
           </label>
 
+          <label className="teacher-intro-description-field">
+            <span>Course description</span>
+            <textarea
+              value={courseDescription}
+              onChange={(event) => {
+                setCourseDescription(event.target.value);
+                setIntroVideoMessage("");
+              }}
+              placeholder="Short description students see before enrolling"
+              disabled={savingIntroVideo}
+              rows={3}
+            />
+          </label>
+
           <div className="teacher-intro-video-actions">
             <button type="submit" disabled={savingIntroVideo}>
               {savingIntroVideo ? "Saving..." : "Save Video"}
@@ -944,15 +1015,40 @@ function LessonContentPanel({
             disabled={saving}
             autoFocus
           />
-          <input
-            type="text"
-            value={draft.resource}
-            onChange={(event) =>
-              onUpdateDraft(lessonId, "resource", event.target.value)
-            }
-            placeholder={draft.type === "material" ? "File URL or path" : "URL"}
-            disabled={saving}
-          />
+          {draft.type === "material" ? (
+            <label className="teacher-material-file-field">
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(event) =>
+                  onUpdateDraft(
+                    lessonId,
+                    "file",
+                    event.target.files?.[0] || null
+                  )
+                }
+                disabled={saving}
+              />
+              <span className="teacher-material-file-button">Choose File</span>
+              <span
+                className={`teacher-material-file-name ${
+                  draft.file ? "has-file" : ""
+                }`}
+              >
+                {draft.file?.name || "No file chosen"}
+              </span>
+            </label>
+          ) : (
+            <input
+              type="text"
+              value={draft.resource}
+              onChange={(event) =>
+                onUpdateDraft(lessonId, "resource", event.target.value)
+              }
+              placeholder="URL"
+              disabled={saving}
+            />
+          )}
           {draft.type === "video" ? (
             <input
               type="text"
@@ -987,7 +1083,11 @@ function LessonContentPanel({
               <div>
                 <p>
                   {item.label}
-                  {item.resource ? ` - ${item.resource}` : ""}
+                  {item.resource
+                    ? item.type === "material"
+                      ? " - PDF uploaded"
+                      : ` - ${item.resource}`
+                    : ""}
                 </p>
                 <h5>{item.title}</h5>
                 {item.description ? <small>{item.description}</small> : null}
@@ -1221,6 +1321,10 @@ function getYouTubeEmbedUrl(url) {
 
 function isDirectVideoUrl(url) {
   return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url);
+}
+
+function isPdfFile(file) {
+  return file?.type === "application/pdf" || /\.pdf$/i.test(file?.name || "");
 }
 
 function formatPublishAmount(amount) {

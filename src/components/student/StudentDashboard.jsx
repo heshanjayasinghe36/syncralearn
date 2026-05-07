@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Banknote,
   Bell,
@@ -6,6 +6,7 @@ import {
   Flame,
   GraduationCap,
   LayoutDashboard,
+  LogOut,
   Search,
   Settings,
   Sparkles,
@@ -33,6 +34,8 @@ export default function StudentDashboard({
   onSignOut,
   studentProfile,
   onStudentProfileUpdate,
+  theme,
+  onToggleTheme,
 }) {
   const [activeView, setActiveView] = useState("dashboard");
   const [localStudentProfile, setLocalStudentProfile] = useState(studentProfile);
@@ -40,6 +43,8 @@ export default function StudentDashboard({
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionMessage, setSuggestionMessage] = useState("");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
   const effectiveStudentProfile = localStudentProfile || studentProfile;
   const displayName =
     effectiveStudentProfile?.full_name ||
@@ -58,6 +63,20 @@ export default function StudentDashboard({
   useEffect(() => {
     setLocalStudentProfile(studentProfile);
   }, [studentProfile]);
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!profileMenuRef.current?.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -142,6 +161,7 @@ export default function StudentDashboard({
               type="button"
               onClick={() => {
                 setSelectedCourse(null);
+                setProfileMenuOpen(false);
                 setActiveView(id);
               }}
               className={`teacher-sidebar-link ${
@@ -164,6 +184,7 @@ export default function StudentDashboard({
           }`}
           onClick={() => {
             setSelectedCourse(null);
+            setProfileMenuOpen(false);
             setActiveView("settings");
           }}
         >
@@ -195,19 +216,41 @@ export default function StudentDashboard({
               <span>0</span>
             </div>
 
-            <div className="teacher-profile-chip">
-              <div className="teacher-avatar" aria-label={displayName}>
-                {initials}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="teacher-signout-button"
+            <div
+              className="student-profile-menu-wrap"
+              ref={profileMenuRef}
             >
-              Sign out
-            </button>
+              <button
+                type="button"
+                className="student-profile-trigger"
+                onClick={() => setProfileMenuOpen((open) => !open)}
+                aria-label={`${displayName} profile menu`}
+                aria-expanded={profileMenuOpen}
+                aria-haspopup="menu"
+              >
+                <span className="student-topbar-avatar">{initials}</span>
+              </button>
+
+              {profileMenuOpen ? (
+                <div className="student-profile-menu" role="menu">
+                  <div>
+                    <strong>{displayName}</strong>
+                    <span>{effectiveStudentProfile?.email || session?.user?.email}</span>
+                  </div>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      onSignOut?.();
+                    }}
+                  >
+                    <LogOut aria-hidden="true" />
+                    <span>Sign out</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
 
@@ -228,6 +271,8 @@ export default function StudentDashboard({
               session={session}
               studentProfile={effectiveStudentProfile}
               onProfileUpdate={handleStudentProfileUpdate}
+              theme={theme}
+              onToggleTheme={onToggleTheme}
             />
           ) : activeView === "dashboard" || activeView === "courses" ? (
             <section className="student-suggestions-section">

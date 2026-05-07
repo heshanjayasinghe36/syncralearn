@@ -47,6 +47,7 @@ export default function CoursePreviewPage({ course, displayName, onBack }) {
   const [lessons, setLessons] = useState([]);
   const [lessonContent, setLessonContent] = useState({});
   const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [activeContentIndex, setActiveContentIndex] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [message, setMessage] = useState("");
@@ -65,11 +66,14 @@ export default function CoursePreviewPage({ course, displayName, onBack }) {
     lessons.length > 0
       ? Math.round(((selectedLessonIndex + 1) / lessons.length) * 100)
       : 0;
-  const primaryContent =
-    selectedContent.find((item) => item.type === "video") || selectedContent[0];
-  const additionalContent = primaryContent
-    ? selectedContent.filter((item) => item.id !== primaryContent.id)
-    : selectedContent;
+  const contentItems = orderPreviewContent(selectedContent);
+  const safeContentIndex = Math.min(
+    activeContentIndex,
+    Math.max(contentItems.length - 1, 0)
+  );
+  const activeContent = contentItems[safeContentIndex] || null;
+  const activeDescription =
+    activeContent?.description || selectedLesson?.summary || "";
 
   useEffect(() => {
     let ignore = false;
@@ -208,12 +212,15 @@ export default function CoursePreviewPage({ course, displayName, onBack }) {
                     className={`course-preview-mini-lesson ${
                       selectedLesson?.id === lesson.id ? "is-active" : ""
                     } ${index < selectedLessonIndex ? "is-complete" : ""}`}
-                    onClick={() => setSelectedLessonId(lesson.id)}
                     aria-label={`Open lesson ${index + 1}: ${lesson.name}`}
                     aria-current={
                       selectedLesson?.id === lesson.id ? "step" : undefined
                     }
                     title={lesson.name}
+                    onClick={() => {
+                      setSelectedLessonId(lesson.id);
+                      setActiveContentIndex(0);
+                    }}
                   >
                     {index + 1}
                   </button>
@@ -262,7 +269,10 @@ export default function CoursePreviewPage({ course, displayName, onBack }) {
                 key={lesson.id}
                 type="button"
                 className={selectedLesson?.id === lesson.id ? "is-active" : ""}
-                onClick={() => setSelectedLessonId(lesson.id)}
+                onClick={() => {
+                  setSelectedLessonId(lesson.id);
+                  setActiveContentIndex(0);
+                }}
               >
                 <i>
                   {index < selectedLessonIndex ? (
@@ -299,23 +309,28 @@ export default function CoursePreviewPage({ course, displayName, onBack }) {
         <section className="course-preview-lesson-card">
           <div className="course-preview-lesson-header">
             <h3>{selectedLesson?.name || "Select a lesson"}</h3>
-            <span>{formatLessonBadge(primaryContent)}</span>
+            <span>{formatLessonBadge(activeContent)}</span>
           </div>
 
-          {primaryContent?.type === "video" && primaryContent.resource ? (
+          {activeContent?.type === "video" && activeContent.resource ? (
             <PreviewVideo
-              url={primaryContent.resource}
-              title={primaryContent.title}
+              url={activeContent.resource}
+              title={activeContent.title}
             />
-          ) : primaryContent?.resource ? (
+          ) : activeContent?.type === "material" && activeContent.resource ? (
+            <PreviewPdf
+              url={activeContent.resource}
+              title={activeContent.title}
+            />
+          ) : activeContent?.resource ? (
             <a
               className="course-preview-main-resource"
-              href={primaryContent.resource}
+              href={activeContent.resource}
               target="_blank"
               rel="noreferrer"
             >
-              <PreviewContentIcon type={primaryContent.type} />
-              <span>Open {primaryContent.label}</span>
+              <PreviewContentIcon type={activeContent.type} />
+              <span>Open {activeContent.label}</span>
               <ExternalLink aria-hidden="true" />
             </a>
           ) : (
@@ -325,59 +340,15 @@ export default function CoursePreviewPage({ course, displayName, onBack }) {
             </div>
           )}
 
-          <p>
-            {primaryContent?.description ||
-              selectedLesson?.summary ||
-              "This lesson is ready for preview. Add a video description, material, or quiz to make this section richer for students."}
-          </p>
+          {activeDescription ? <p>{activeDescription}</p> : null}
         </section>
 
-        {loadingLessons || additionalContent.length > 0 ? (
-          <section
-            className="course-preview-content-list"
-            aria-label="Additional lesson content"
-          >
-            {loadingLessons ? (
-              <p className="course-preview-empty">Loading lesson content...</p>
-            ) : (
-              additionalContent.map((item) => (
-                <article key={item.id} className="course-preview-content-card">
-                  <div className="course-preview-content-heading">
-                    <span>
-                      <PreviewContentIcon type={item.type} />
-                    </span>
-                    <div>
-                      <p>{item.label}</p>
-                      <h4>{item.title}</h4>
-                      {item.description ? (
-                        <small>{item.description}</small>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {item.type === "video" && item.resource ? (
-                    <PreviewVideo url={item.resource} title={item.title} />
-                  ) : item.resource ? (
-                    <a
-                      className="course-preview-resource-link"
-                      href={item.resource}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <ExternalLink aria-hidden="true" />
-                      <span>
-                        Open {item.type === "quiz" ? "quiz" : "material"}
-                      </span>
-                    </a>
-                  ) : (
-                    <p className="course-preview-resource-empty">
-                      No resource attached yet.
-                    </p>
-                  )}
-                </article>
-              ))
-            )}
-          </section>
+        {contentItems.length > 1 ? (
+          <ContentSwitcher
+            items={contentItems}
+            activeIndex={safeContentIndex}
+            onChange={setActiveContentIndex}
+          />
         ) : null}
       </section>
     </main>
@@ -394,6 +365,70 @@ function mapPreviewLesson(row) {
   };
 }
 
+function orderPreviewContent(content) {
+  const contentOrder = {
+    video: 0,
+    material: 1,
+    quiz: 2,
+  };
+
+  return [...content].sort((firstItem, secondItem) => {
+    const firstOrder = contentOrder[firstItem.type] ?? 99;
+    const secondOrder = contentOrder[secondItem.type] ?? 99;
+
+    if (firstOrder !== secondOrder) {
+      return firstOrder - secondOrder;
+    }
+
+    return String(firstItem.title).localeCompare(String(secondItem.title));
+  });
+}
+
+function ContentSwitcher({ items, activeIndex, onChange }) {
+  const canGoBack = activeIndex > 0;
+  const canGoForward = activeIndex < items.length - 1;
+
+  return (
+    <div className="course-preview-content-switcher" aria-label="Lesson content">
+      <button
+        type="button"
+        onClick={() => onChange(activeIndex - 1)}
+        disabled={!canGoBack}
+        aria-label="Previous lesson content"
+      >
+        <ChevronLeft aria-hidden="true" />
+      </button>
+
+      <div
+        className="course-preview-content-lines"
+        role="tablist"
+        style={{ "--line-count": items.length }}
+      >
+        {items.map((item, index) => (
+          <button
+            key={item.id}
+            type="button"
+            className={index === activeIndex ? "is-active" : ""}
+            onClick={() => onChange(index)}
+            aria-label={`Show ${item.label}`}
+            aria-selected={index === activeIndex}
+            role="tab"
+          />
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onChange(activeIndex + 1)}
+        disabled={!canGoForward}
+        aria-label="Next lesson content"
+      >
+        <ChevronRight aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 function PreviewContentIcon({ type }) {
   if (type === "video") {
     return <Video aria-hidden="true" />;
@@ -404,6 +439,18 @@ function PreviewContentIcon({ type }) {
   }
 
   return <ListChecks aria-hidden="true" />;
+}
+
+function PreviewPdf({ url, title }) {
+  return (
+    <div className="course-preview-pdf">
+      <iframe src={url} title={`${title} material preview`} />
+      <a href={url} target="_blank" rel="noreferrer">
+        <ExternalLink aria-hidden="true" />
+        <span>Open PDF</span>
+      </a>
+    </div>
+  );
 }
 
 function PreviewVideo({ url, title }) {

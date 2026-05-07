@@ -320,6 +320,7 @@ export default function App() {
   const showFloatingThemeToggle =
     !isStudentOnboarding &&
     !isTeacherOnboarding &&
+    userRole !== "student" &&
     (adminSession || authLoading || profileLoading || session);
 
   return (
@@ -376,6 +377,8 @@ export default function App() {
             userRole={userRole}
             studentProfile={studentProfile}
             onStudentProfileUpdate={setStudentProfile}
+            theme={theme}
+            onToggleTheme={toggleTheme}
           />
         )
       ) : page === "login" ? (

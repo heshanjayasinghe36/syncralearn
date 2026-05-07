@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   Mail,
+  Moon,
   RotateCcw,
   Save,
   Settings,
   Sparkles,
+  Sun,
   UserRound,
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
@@ -15,6 +17,8 @@ export default function StudentSettingsPage({
   session,
   studentProfile,
   onProfileUpdate,
+  theme = "light",
+  onToggleTheme,
 }) {
   const [fullName, setFullName] = useState(studentProfile?.full_name || "");
   const [dob, setDob] = useState(studentProfile?.dob || "");
@@ -374,6 +378,42 @@ export default function StudentSettingsPage({
             <p className="student-settings-message">{learningMessage}</p>
           ) : null}
         </form>
+
+        <section className="student-settings-card student-settings-preferences-card">
+          <div className="student-settings-card-heading">
+            <span>
+              <Settings aria-hidden="true" />
+            </span>
+            <div>
+              <p>Preferences</p>
+              <h3>Appearance</h3>
+            </div>
+          </div>
+
+          <div className="student-settings-preference-row">
+            <div>
+              <h4>Theme mode</h4>
+              <p>Switch between the light and dark Syncra Learn interface.</p>
+            </div>
+
+            <button
+              type="button"
+              className="student-settings-theme-toggle"
+              onClick={onToggleTheme}
+              disabled={!onToggleTheme}
+              aria-label={
+                theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+              }
+            >
+              <span className={theme === "light" ? "is-active" : ""}>
+                <Sun aria-hidden="true" />
+              </span>
+              <span className={theme === "dark" ? "is-active" : ""}>
+                <Moon aria-hidden="true" />
+              </span>
+            </button>
+          </div>
+        </section>
       </div>
     </section>
   );

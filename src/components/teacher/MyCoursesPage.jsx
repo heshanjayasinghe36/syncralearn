@@ -576,7 +576,7 @@ function CourseCard({
     }
 
     event.preventDefault();
-    onPreview?.();
+    onEditLessons?.();
   }
 
   return (
@@ -584,9 +584,9 @@ function CourseCard({
       className={`teacher-course-card ${course.tone}`}
       role="button"
       tabIndex={0}
-      onClick={onPreview}
+      onClick={onEditLessons}
       onKeyDown={handleCardKeyDown}
-      aria-label={`Preview ${course.title}`}
+      aria-label={`Edit lessons for ${course.title}`}
     >
       <div
         className={`teacher-course-visual ${course.imgUrl ? "has-image" : ""}`}
@@ -622,8 +622,8 @@ function CourseCard({
                 <button type="button" onClick={onEdit}>
                   Edit
                 </button>
-                <button type="button" onClick={onEditLessons}>
-                  Edit lessons
+                <button type="button" onClick={onPreview}>
+                  Student Preview
                 </button>
                 <button type="button" className="danger" onClick={onDelete}>
                   Delete

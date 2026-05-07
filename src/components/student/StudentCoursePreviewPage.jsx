@@ -11,13 +11,63 @@ import {
 import { supabase, supabaseConfigError } from "../../lib/supabase";
 
 export default function StudentCoursePreviewPage({ course, onBack }) {
+  const [courseDetails, setCourseDetails] = useState(() => course || null);
   const [lessons, setLessons] = useState([]);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [message, setMessage] = useState("");
   const courseId = course?.cid || course?.id || null;
-  const previewVideo = getVideoPreview(course?.introVideoUrl || course?.intro_vid_url);
-  const amountLabel = formatCourseAmount(course?.amount);
+  const previewCourse = courseDetails || course || {};
+  const courseDescription = previewCourse.description?.trim() || "";
+  const previewVideo = getVideoPreview(
+    previewCourse?.introVideoUrl || previewCourse?.intro_vid_url
+  );
+  const amountLabel = formatCourseAmount(previewCourse?.amount);
   const isFree = amountLabel === "Free";
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadCourseDetails() {
+      setCourseDetails(course || null);
+
+      if (!courseId || !supabase) {
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("course")
+        .select(
+          "cid, name, description, teachingstyle, amount, level, status, img_url, intro_vid_url"
+        )
+        .eq("cid", courseId)
+        .maybeSingle();
+
+      if (ignore || error || !data) {
+        return;
+      }
+
+      setCourseDetails((currentCourse) => ({
+        ...(currentCourse || {}),
+        cid: data.cid,
+        id: data.cid,
+        name: data.name || currentCourse?.name || "Untitled Course",
+        description: data.description || "",
+        teachingstyle: data.teachingstyle || currentCourse?.teachingstyle || "",
+        amount: data.amount,
+        level: data.level || currentCourse?.level || "",
+        status: data.status || currentCourse?.status || "",
+        imgUrl: data.img_url || currentCourse?.imgUrl || "",
+        introVideoUrl: data.intro_vid_url || "",
+        intro_vid_url: data.intro_vid_url || "",
+      }));
+    }
+
+    void loadCourseDetails();
+
+    return () => {
+      ignore = true;
+    };
+  }, [course, courseId]);
 
   useEffect(() => {
     let ignore = false;
@@ -76,7 +126,7 @@ export default function StudentCoursePreviewPage({ course, onBack }) {
               previewVideo.type === "iframe" ? (
                 <iframe
                   src={previewVideo.src}
-                  title={`${course?.name || "Course"} introduction video`}
+                  title={`${previewCourse?.name || "Course"} introduction video`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 />
@@ -85,8 +135,8 @@ export default function StudentCoursePreviewPage({ course, onBack }) {
                   <track kind="captions" />
                 </video>
               )
-            ) : course?.imgUrl ? (
-              <img src={course.imgUrl} alt="" />
+            ) : previewCourse?.imgUrl ? (
+              <img src={previewCourse.imgUrl} alt="" />
             ) : (
               <div className="student-preview-video-empty">
                 <BookOpen aria-hidden="true" />
@@ -140,13 +190,11 @@ export default function StudentCoursePreviewPage({ course, onBack }) {
         <aside className="student-preview-side">
           <article className="student-preview-enroll-card">
             <span className="student-preview-style-pill">
-              {course?.styleLabel || "Recommended"}
+              <Sparkles aria-hidden="true" />
+              {previewCourse?.styleLabel || "Recommended"}
             </span>
-            <h2>{course?.name || "Untitled Course"}</h2>
-            <p>
-              {course?.description ||
-                "Explore this course preview and review the curriculum before enrolling."}
-            </p>
+            <h2>{previewCourse?.name || "Untitled Course"}</h2>
+            {courseDescription ? <p>{courseDescription}</p> : null}
 
             <div className="student-preview-price-grid">
               <div>
