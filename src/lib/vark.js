@@ -3,76 +3,28 @@ export const VARK_OPTION_GROUPS = [
     title: "Single Preferences",
     options: [
       {
-        value: "mild_visual",
-        label: "Mild Visual",
+        value: "visual",
+        label: "Visual",
         badge: "V",
-        description: "A visual preference with moderate emphasis on diagrams, maps, and patterns.",
+        description: "Use this for Mild, Strong, or Very Strong Visual VARK results.",
       },
       {
-        value: "strong_visual",
-        label: "Strong Visual",
-        badge: "V",
-        description: "A clearly visual preference for charts, layout, symbols, and graphic structure.",
-      },
-      {
-        value: "very_strong_visual",
-        label: "Very Strong Visual",
-        badge: "V",
-        description: "A highly visual preference centered on diagrams, spatial patterns, and design.",
-      },
-      {
-        value: "mild_aural",
-        label: "Mild Aural",
+        value: "aural",
+        label: "Aural",
         badge: "A",
-        description: "An aural preference with moderate emphasis on listening, discussion, and explanation.",
+        description: "Use this for Mild, Strong, or Very Strong Aural VARK results.",
       },
       {
-        value: "strong_aural",
-        label: "Strong Aural",
-        badge: "A",
-        description: "A clearly aural preference for spoken discussion, questions, and hearing ideas aloud.",
-      },
-      {
-        value: "very_strong_aural",
-        label: "Very Strong Aural",
-        badge: "A",
-        description: "A highly aural preference centered on listening, talking, and verbal exchange.",
-      },
-      {
-        value: "mild_read_write",
-        label: "Mild Read/write",
+        value: "read_write",
+        label: "Read/write",
         badge: "R",
-        description: "A read/write preference with moderate emphasis on notes, text, and written summaries.",
+        description: "Use this for Mild, Strong, or Very Strong Read/write VARK results.",
       },
       {
-        value: "strong_read_write",
-        label: "Strong Read/write",
-        badge: "R",
-        description: "A clearly read/write preference for manuals, lists, reading, and writing.",
-      },
-      {
-        value: "very_strong_read_write",
-        label: "Very Strong Read/write",
-        badge: "R",
-        description: "A highly read/write preference centered on text-heavy learning and written processing.",
-      },
-      {
-        value: "mild_kinesthetic",
-        label: "Mild Kinesthetic",
+        value: "kinesthetic",
+        label: "Kinesthetic",
         badge: "K",
-        description: "A kinesthetic preference with moderate emphasis on examples, cases, and practical activity.",
-      },
-      {
-        value: "strong_kinesthetic",
-        label: "Strong Kinesthetic",
-        badge: "K",
-        description: "A clearly kinesthetic preference for doing, practicing, and real-world application.",
-      },
-      {
-        value: "very_strong_kinesthetic",
-        label: "Very Strong Kinesthetic",
-        badge: "K",
-        description: "A highly kinesthetic preference centered on hands-on experience and concrete examples.",
+        description: "Use this for Mild, Strong, or Very Strong Kinesthetic VARK results.",
       },
     ],
   },
@@ -153,19 +105,7 @@ export const VARK_OPTION_GROUPS = [
         value: "vark",
         label: "VARK",
         badge: "VARK",
-        description: "All four modalities are included in your preference.",
-      },
-      {
-        value: "vark_selective",
-        label: "VARK (Selective)",
-        badge: "VARK",
-        description: "You select among all four modes depending on the context.",
-      },
-      {
-        value: "vark_integrative",
-        label: "VARK (Integrative)",
-        badge: "VARK",
-        description: "You prefer combining all four modes together when learning.",
+        description: "Use this for VARK, VARK Selective, or VARK Integrative results.",
       },
     ],
   },
@@ -229,11 +169,66 @@ const LEGACY_VARK_LABELS = {
   aural: "Aural",
   read_write: "Read/write",
   kinesthetic: "Kinesthetic",
+  mild_visual: "Visual",
+  strong_visual: "Visual",
+  very_strong_visual: "Visual",
+  mild_aural: "Aural",
+  strong_aural: "Aural",
+  very_strong_aural: "Aural",
+  mild_read_write: "Read/write",
+  strong_read_write: "Read/write",
+  very_strong_read_write: "Read/write",
+  mild_kinesthetic: "Kinesthetic",
+  strong_kinesthetic: "Kinesthetic",
+  very_strong_kinesthetic: "Kinesthetic",
+  vark_selective: "VARK",
+  vark_integrative: "VARK",
   multimodal: "Multimodal",
 };
 
+const CANONICAL_VARK_VALUES = {
+  mild_visual: "visual",
+  strong_visual: "visual",
+  very_strong_visual: "visual",
+  mild_aural: "aural",
+  strong_aural: "aural",
+  very_strong_aural: "aural",
+  mild_read_write: "read_write",
+  strong_read_write: "read_write",
+  very_strong_read_write: "read_write",
+  mild_kinesthetic: "kinesthetic",
+  strong_kinesthetic: "kinesthetic",
+  very_strong_kinesthetic: "kinesthetic",
+  vark_selective: "vark",
+  vark_integrative: "vark",
+  multimodal: "vark",
+};
+
 export function getVarkResultLabel(value) {
-  return VARK_LABELS[value] || LEGACY_VARK_LABELS[value] || value;
+  const rawValue = String(value || "").trim();
+  const normalizedValue = rawValue
+    .toLowerCase()
+    .replace(/read\s*\/?\s*write/g, "read_write")
+    .replace(/[\s-]+/g, "_");
+  const canonicalValue = getCanonicalVarkValue(rawValue);
+
+  return (
+    VARK_LABELS[canonicalValue] ||
+    VARK_LABELS[rawValue] ||
+    LEGACY_VARK_LABELS[normalizedValue] ||
+    LEGACY_VARK_LABELS[rawValue] ||
+    rawValue
+  );
+}
+
+export function getCanonicalVarkValue(value = "") {
+  const rawValue = String(value).trim();
+  const normalizedValue = rawValue
+    .toLowerCase()
+    .replace(/read\s*\/?\s*write/g, "read_write")
+    .replace(/[\s-]+/g, "_");
+
+  return CANONICAL_VARK_VALUES[normalizedValue] || normalizedValue || rawValue;
 }
 
 export function getVarkStyleKeys(value = "") {

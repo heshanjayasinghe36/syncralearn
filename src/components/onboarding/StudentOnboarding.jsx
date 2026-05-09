@@ -152,11 +152,11 @@ export default function StudentOnboarding({
             </div>
 
             <h1>Discover Your Learning Style</h1>
-            <p className="student-onboarding-copy">
+            {/* <p className="student-onboarding-copy">
               The VARK questionnaire helps you understand how you process
               information best. Whether you are a visual mapper or a social
               listener, we will adapt your journey to match.
-            </p>
+            </p> */}
 
             <a
               href="https://vark-learn.com/the-vark-questionnaire/"

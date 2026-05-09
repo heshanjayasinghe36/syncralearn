@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import { generateContentWithFallback } from "./geminiFallback.js";
 
 const execAsync = promisify(exec);
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -92,8 +93,7 @@ Rules:
 
   const imageParts = selectedFrames.map(imageToPart);
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+  const { response, model } = await generateContentWithFallback(ai, {
     contents: [
       {
         role: "user",
@@ -101,6 +101,8 @@ Rules:
       },
     ],
   });
+
+  console.log(`Gemini frame model used: ${model}`);
 
   return JSON.parse(cleanJson(response.text));
 }

@@ -4,6 +4,7 @@ import { YoutubeTranscript } from "youtube-transcript";
 import { GoogleGenAI } from "@google/genai";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import { generateContentWithFallback } from "./geminiFallback.js";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(scriptDir, ".env") });
@@ -54,10 +55,11 @@ Transcript:
 ${transcript}
 `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+  const { response, model } = await generateContentWithFallback(ai, {
     contents: prompt,
   });
+
+  console.log(`Gemini transcript model used: ${model}`);
 
   return JSON.parse(cleanJson(response.text));
 }

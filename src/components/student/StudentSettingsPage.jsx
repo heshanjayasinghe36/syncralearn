@@ -11,7 +11,12 @@ import {
   UserRound,
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
-import { VARK_OPTIONS, VARK_OPTION_GROUPS, getVarkResultLabel } from "../../lib/vark";
+import {
+  VARK_OPTIONS,
+  VARK_OPTION_GROUPS,
+  getCanonicalVarkValue,
+  getVarkResultLabel,
+} from "../../lib/vark";
 
 export default function StudentSettingsPage({
   session,
@@ -23,7 +28,7 @@ export default function StudentSettingsPage({
   const [fullName, setFullName] = useState(studentProfile?.full_name || "");
   const [dob, setDob] = useState(studentProfile?.dob || "");
   const [selectedLearningStyle, setSelectedLearningStyle] = useState(
-    studentProfile?.mls || ""
+    getCanonicalVarkValue(studentProfile?.mls || "")
   );
   const [menuOpen, setMenuOpen] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -122,13 +127,15 @@ export default function StudentSettingsPage({
       return;
     }
 
+    const canonicalLearningStyle = getCanonicalVarkValue(selectedLearningStyle);
+
     setSavingLearningStyle(true);
     setLearningMessage("");
 
     let query = supabase
       .from("student")
       .update({
-        mls: selectedLearningStyle,
+        mls: canonicalLearningStyle,
         vark_completed: true,
         vark_completed_at: new Date().toISOString(),
       })
@@ -148,10 +155,11 @@ export default function StudentSettingsPage({
 
     onProfileUpdate?.(data || {
       ...studentProfile,
-      mls: selectedLearningStyle,
+      mls: canonicalLearningStyle,
       vark_completed: true,
       vark_completed_at: new Date().toISOString(),
     });
+    setSelectedLearningStyle(canonicalLearningStyle);
     setLearningMessage("Learning style saved.");
     setSavingLearningStyle(false);
   }

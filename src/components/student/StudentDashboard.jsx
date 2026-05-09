@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
 import { getVarkStyleKeys, getVarkStyleLabel } from "../../lib/vark";
+import StudentCourseLearningPage from "./StudentCourseLearningPage";
 import StudentCoursePreviewPage from "./StudentCoursePreviewPage";
 import StudentSettingsPage from "./StudentSettingsPage";
 
@@ -40,9 +41,12 @@ export default function StudentDashboard({
   const [activeView, setActiveView] = useState("dashboard");
   const [localStudentProfile, setLocalStudentProfile] = useState(studentProfile);
   const [suggestedCourses, setSuggestedCourses] = useState([]);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [loadingEnrolledCourses, setLoadingEnrolledCourses] = useState(false);
   const [suggestionMessage, setSuggestionMessage] = useState("");
+  const [enrolledCoursesMessage, setEnrolledCoursesMessage] = useState("");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
   const effectiveStudentProfile = localStudentProfile || studentProfile;
@@ -54,6 +58,7 @@ export default function StudentDashboard({
     "Student";
   const initials = getInitials(displayName);
   const learningStyle = effectiveStudentProfile?.mls || "";
+  const studentId = effectiveStudentProfile?.sid || null;
 
   function handleStudentProfileUpdate(nextProfile) {
     setLocalStudentProfile(nextProfile);
@@ -77,6 +82,83 @@ export default function StudentDashboard({
       document.removeEventListener("mousedown", handlePointerDown);
     };
   }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadEnrolledCourses() {
+      if (!supabase) {
+        setEnrolledCourses([]);
+        setEnrolledCoursesMessage(
+          supabaseConfigError || "Supabase is not configured."
+        );
+        return;
+      }
+
+      if (!studentId) {
+        setEnrolledCourses([]);
+        setEnrolledCoursesMessage("");
+        return;
+      }
+
+      setLoadingEnrolledCourses(true);
+      setEnrolledCoursesMessage("");
+
+      const { data, error } = await supabase
+        .from("student_course")
+        .select(
+          `
+          enrolled_at,
+          progress_percent,
+          completed,
+          course (
+            cid,
+            name,
+            description,
+            teachingstyle,
+            amount,
+            level,
+            status,
+            img_url,
+            intro_vid_url
+          )
+        `
+        )
+        .eq("sid", studentId)
+        .order("enrolled_at", { ascending: false });
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        setEnrolledCourses([]);
+        setEnrolledCoursesMessage(
+          `Enrolled courses load failed: ${error.message}`
+        );
+      } else {
+        const mappedCourses = (data || [])
+          .map((row) =>
+            mapSuggestedCourse(row.course, row.enrolled_at, {
+              progressPercent: row.progress_percent,
+              completed: row.completed,
+            })
+          )
+          .filter((course) => course.id);
+
+        setEnrolledCourses(mappedCourses);
+        setEnrolledCoursesMessage("");
+      }
+
+      setLoadingEnrolledCourses(false);
+    }
+
+    void loadEnrolledCourses();
+
+    return () => {
+      ignore = true;
+    };
+  }, [studentId]);
 
   useEffect(() => {
     let ignore = false;
@@ -121,6 +203,12 @@ export default function StudentDashboard({
           .filter((course) =>
             hasMatchingLearningStyle(studentStyleKeys, course.teachingstyle)
           )
+          .filter(
+            (course) =>
+              !enrolledCourses.some(
+                (enrolledCourse) => enrolledCourse.id === course.cid
+              )
+          )
           .map(mapSuggestedCourse);
 
         setSuggestedCourses(matchedCourses);
@@ -139,7 +227,21 @@ export default function StudentDashboard({
     return () => {
       ignore = true;
     };
-  }, [learningStyle]);
+  }, [enrolledCourses, learningStyle]);
+
+  if (activeView === "enrolled-course-preview" && selectedCourse) {
+    return (
+      <StudentCourseLearningPage
+        course={selectedCourse}
+        displayName={displayName}
+        studentId={studentId}
+        onBack={() => {
+          setSelectedCourse(null);
+          setActiveView("dashboard");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="teacher-dashboard-shell">
@@ -166,7 +268,9 @@ export default function StudentDashboard({
               }}
               className={`teacher-sidebar-link ${
                 activeView === id ||
-                (id === "courses" && activeView === "course-preview")
+                (id === "courses" &&
+                  (activeView === "course-preview" ||
+                    activeView === "enrolled-course-preview"))
                   ? "is-active"
                   : ""
               }`}
@@ -261,6 +365,8 @@ export default function StudentDashboard({
           {activeView === "course-preview" && selectedCourse ? (
             <StudentCoursePreviewPage
               course={selectedCourse}
+              session={session}
+              studentProfile={effectiveStudentProfile}
               onBack={() => {
                 setSelectedCourse(null);
                 setActiveView("courses");
@@ -275,74 +381,40 @@ export default function StudentDashboard({
               onToggleTheme={onToggleTheme}
             />
           ) : activeView === "dashboard" || activeView === "courses" ? (
-            <section className="student-suggestions-section">
-              <div className="student-suggestions-header">
-                <div>
-                  <span>
-                    <Sparkles aria-hidden="true" />
-                    Matched for your style
-                  </span>
-                  <h2>Suggested Courses</h2>
-                </div>
-              </div>
+            <div className="student-dashboard-course-sections">
+              <CourseSection
+                badge="Your learning"
+                title="Enrolled Courses"
+                icon={<BookOpen aria-hidden="true" />}
+                courses={enrolledCourses}
+                loading={loadingEnrolledCourses}
+                loadingText="Loading enrolled courses..."
+                message={
+                  enrolledCoursesMessage ||
+                  (enrolledCourses.length === 0
+                    ? "You have not enrolled in any courses yet."
+                    : "")
+                }
+                onOpenCourse={(course) => {
+                  setSelectedCourse(course);
+                  setActiveView("enrolled-course-preview");
+                }}
+              />
 
-              {loadingSuggestions ? (
-                <p className="student-suggestion-state">
-                  Loading suggested courses...
-                </p>
-              ) : suggestionMessage ? (
-                <p className="student-suggestion-state">{suggestionMessage}</p>
-              ) : (
-                <div className="student-suggestion-grid">
-                  {suggestedCourses.map((course) => (
-                    <article
-                      key={course.id}
-                      className="student-course-card"
-                      tabIndex={0}
-                      role="button"
-                      onClick={() => {
-                        setSelectedCourse(course);
-                        setActiveView("course-preview");
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setSelectedCourse(course);
-                          setActiveView("course-preview");
-                        }
-                      }}
-                    >
-                      <div className="student-course-visual">
-                        {course.imgUrl ? (
-                          <img src={course.imgUrl} alt="" />
-                        ) : (
-                          <BookOpen aria-hidden="true" />
-                        )}
-                        <span>{course.styleLabel}</span>
-                      </div>
-
-                      <div className="student-course-body">
-                        <div>
-                          <p>{course.levelLabel}</p>
-                          <h3>{course.name}</h3>
-                        </div>
-
-                        {course.description ? (
-                          <small>{course.description}</small>
-                        ) : null}
-
-                        <div className="student-course-meta">
-                          <span>
-                            <Banknote aria-hidden="true" />
-                            {formatCourseAmount(course.amount)}
-                          </span>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
+              <CourseSection
+                badge="Matched for your style"
+                title="Suggested Courses"
+                icon={<Sparkles aria-hidden="true" />}
+                courses={suggestedCourses}
+                loading={loadingSuggestions}
+                loadingText="Loading suggested courses..."
+                message={suggestionMessage}
+                onOpenCourse={(course) => {
+                  setSelectedCourse(course);
+                  setActiveView("course-preview");
+                }}
+              />
+            </div>
           ) : null}
         </main>
       </section>
@@ -350,9 +422,116 @@ export default function StudentDashboard({
   );
 }
 
-function mapSuggestedCourse(row) {
+function CourseSection({
+  badge,
+  title,
+  icon,
+  courses,
+  loading,
+  loadingText,
+  message,
+  onOpenCourse,
+}) {
+  return (
+    <section className="student-suggestions-section">
+      <div className="student-suggestions-header">
+        <div>
+          <span>
+            {icon}
+            {badge}
+          </span>
+          <h2>{title}</h2>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="student-suggestion-state">{loadingText}</p>
+      ) : message ? (
+        <p className="student-suggestion-state">{message}</p>
+      ) : (
+        <div className="student-suggestion-grid">
+          {courses.map((course) => (
+            <CourseCard
+              key={course.id}
+              course={course}
+              onOpenCourse={onOpenCourse}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CourseCard({ course, onOpenCourse }) {
+  return (
+    <article
+      className="student-course-card"
+      tabIndex={0}
+      role="button"
+      onClick={() => onOpenCourse(course)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpenCourse(course);
+        }
+      }}
+    >
+      <div className="student-course-visual">
+        {course.imgUrl ? (
+          <img src={course.imgUrl} alt="" />
+        ) : (
+          <BookOpen aria-hidden="true" />
+        )}
+        <span>{course.styleLabel}</span>
+      </div>
+
+      <div className="student-course-body">
+        <div>
+          <p>{course.levelLabel}</p>
+          <h3>{course.name}</h3>
+        </div>
+
+        {!course.enrolledAt && course.description ? (
+          <small>{course.description}</small>
+        ) : null}
+
+        {!course.enrolledAt ? (
+          <div className="student-course-meta">
+            <span>
+              <Banknote aria-hidden="true" />
+              {formatCourseAmount(course.amount)}
+            </span>
+          </div>
+        ) : null}
+
+        {course.enrolledAt ? (
+          <div className="student-course-progress-block">
+            <div className="student-course-progress-label">
+              <span>Course Completion</span>
+              <strong>{Number(course.progressPercent || 0)}%</strong>
+            </div>
+            <div className="student-course-progress">
+              <span
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.max(0, Number(course.progressPercent || 0))
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function mapSuggestedCourse(row, enrolledAt = null, progress = {}) {
   return {
     id: row?.cid,
+    cid: row?.cid,
     name: row?.name || "Untitled Course",
     description: row?.description || "",
     teachingstyle: row?.teachingstyle || "",
@@ -362,6 +541,9 @@ function mapSuggestedCourse(row) {
     imgUrl: row?.img_url || "",
     introVideoUrl: row?.intro_vid_url || "",
     intro_vid_url: row?.intro_vid_url || "",
+    enrolledAt,
+    progressPercent: progress.progressPercent ?? 0,
+    completed: progress.completed || false,
   };
 }
 

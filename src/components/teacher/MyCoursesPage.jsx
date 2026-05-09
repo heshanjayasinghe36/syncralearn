@@ -109,7 +109,15 @@ export default function MyCoursesPage({
         setMessage(`Courses load failed: ${error.message}`);
         setCourses([]);
       } else {
-        setCourses((data || []).map(mapCourseRowToCard));
+        const mappedCourses = await hydrateCourseEnrollmentProgress(
+          (data || []).map(mapCourseRowToCard)
+        );
+
+        if (ignore) {
+          return;
+        }
+
+        setCourses(mappedCourses);
       }
 
       setLoadingCourses(false);
@@ -236,7 +244,9 @@ export default function MyCoursesPage({
         return;
       }
 
-      const updatedCourse = mapCourseRowToCard(data);
+      const [updatedCourse] = await hydrateCourseEnrollmentProgress([
+        mapCourseRowToCard(data),
+      ]);
       setCourses((currentCourses) =>
         currentCourses.map((course) =>
           course.id === updatedCourse.id ? updatedCourse : course
@@ -352,7 +362,9 @@ export default function MyCoursesPage({
       return;
     }
 
-    const updatedCourse = mapCourseRowToCard(data);
+    const [updatedCourse] = await hydrateCourseEnrollmentProgress([
+      mapCourseRowToCard(data),
+    ]);
     setCourses((currentCourses) =>
       currentCourses.map((currentCourse) =>
         currentCourse.id === updatedCourse.id ? updatedCourse : currentCourse
@@ -777,6 +789,56 @@ function mapCourseRowToCard(row) {
     introVideoUrl: row?.intro_vid_url || null,
     intro_vid_url: row?.intro_vid_url || null,
   };
+}
+
+async function hydrateCourseEnrollmentProgress(courses) {
+  const courseIds = courses.map((course) => course.cid).filter(Boolean);
+
+  if (!supabase || courseIds.length === 0) {
+    return courses;
+  }
+
+  const { data, error } = await supabase
+    .from("student_course")
+    .select("cid, progress_percent")
+    .in("cid", courseIds);
+
+  if (error) {
+    console.warn("Course enrollment progress load failed:", error.message);
+    return courses;
+  }
+
+  const enrollmentStatsByCourseId = (data || []).reduce((stats, row) => {
+    const courseId = String(row.cid);
+
+    if (!stats[courseId]) {
+      stats[courseId] = {
+        count: 0,
+        totalProgress: 0,
+      };
+    }
+
+    stats[courseId].count += 1;
+    stats[courseId].totalProgress += Number(row.progress_percent || 0);
+
+    return stats;
+  }, {});
+
+  return courses.map((course) => {
+    const stats = enrollmentStatsByCourseId[String(course.cid)];
+    const studentCount = stats?.count || 0;
+    const averageProgress =
+      studentCount > 0
+        ? Math.round(stats.totalProgress / studentCount)
+        : 0;
+
+    return {
+      ...course,
+      students: String(studentCount),
+      studentCount,
+      progress: averageProgress,
+    };
+  });
 }
 
 function formatCourseStatus(value) {

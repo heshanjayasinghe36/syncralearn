@@ -2,19 +2,30 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
+  CheckCircle2,
   Clock3,
   FileText,
-  Play,
   Milestone,
   Sparkles,
+  X,
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
 
-export default function StudentCoursePreviewPage({ course, onBack }) {
+export default function StudentCoursePreviewPage({
+  course,
+  session,
+  studentProfile,
+  onBack,
+}) {
   const [courseDetails, setCourseDetails] = useState(() => course || null);
   const [lessons, setLessons] = useState([]);
   const [loadingLessons, setLoadingLessons] = useState(false);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const [message, setMessage] = useState("");
+  const [enrollmentMessage, setEnrollmentMessage] = useState("");
   const courseId = course?.cid || course?.id || null;
   const previewCourse = courseDetails || course || {};
   const courseDescription = previewCourse.description?.trim() || "";
@@ -112,6 +123,101 @@ export default function StudentCoursePreviewPage({ course, onBack }) {
     };
   }, [courseId]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    async function checkEnrollment() {
+      if (!courseId || !supabase) {
+        setIsEnrolled(false);
+        return;
+      }
+
+      setCheckingEnrollment(true);
+
+      const sid = await resolveStudentId({ studentProfile, session });
+
+      if (ignore) {
+        return;
+      }
+
+      if (!sid) {
+        setIsEnrolled(false);
+        setCheckingEnrollment(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("student_course")
+        .select("sid, cid")
+        .eq("sid", sid)
+        .eq("cid", courseId)
+        .maybeSingle();
+
+      if (ignore) {
+        return;
+      }
+
+      if (!error) {
+        setIsEnrolled(Boolean(data));
+      }
+
+      setCheckingEnrollment(false);
+    }
+
+    void checkEnrollment();
+
+    return () => {
+      ignore = true;
+    };
+  }, [courseId, session, studentProfile]);
+
+  async function handleConfirmEnrollment() {
+    if (!courseId) {
+      setEnrollmentMessage("Course ID was not found.");
+      return;
+    }
+
+    if (!supabase) {
+      setEnrollmentMessage(supabaseConfigError || "Supabase is not configured.");
+      return;
+    }
+
+    setEnrolling(true);
+    setEnrollmentMessage("");
+
+    const sid = await resolveStudentId({ studentProfile, session });
+
+    if (!sid) {
+      setEnrollmentMessage("Student profile was not found.");
+      setEnrolling(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("student_course")
+      .upsert(
+        {
+          sid,
+          cid: courseId,
+        },
+        {
+          onConflict: "sid,cid",
+          ignoreDuplicates: true,
+        }
+      );
+
+    if (error) {
+      setEnrollmentMessage(`Enrollment failed: ${error.message}`);
+      setEnrolling(false);
+      return;
+    }
+
+    setIsEnrolled(true);
+    setEnrollmentMessage("Enrollment confirmed.");
+    setEnrolling(false);
+    setEnrollModalOpen(false);
+  }
+
   return (
     <section className="student-course-preview-page" aria-label="Course preview">
       <button type="button" className="student-preview-back" onClick={onBack}>
@@ -207,7 +313,26 @@ export default function StudentCoursePreviewPage({ course, onBack }) {
               </div>
             </div>
 
-            <button type="button">Enroll Now</button>
+            <button
+              type="button"
+              onClick={() => {
+                setEnrollmentMessage("");
+                setEnrollModalOpen(true);
+              }}
+              disabled={checkingEnrollment || isEnrolled}
+            >
+              {checkingEnrollment
+                ? "Checking..."
+                : isEnrolled
+                  ? "Enrolled"
+                  : "Enroll Now"}
+            </button>
+
+            {isEnrolled ? (
+              <p className="student-preview-enrolled-note">
+                You are already enrolled in this course.
+              </p>
+            ) : null}
           </article>
 
           <article className="student-preview-stats-card">
@@ -227,7 +352,95 @@ export default function StudentCoursePreviewPage({ course, onBack }) {
           </article>
         </aside>
       </div>
+
+      {enrollModalOpen ? (
+        <EnrollmentModal
+          course={previewCourse}
+          amountLabel={amountLabel}
+          isFree={isFree}
+          lessonCount={lessons.length}
+          message={enrollmentMessage}
+          enrolling={enrolling}
+          onClose={() => {
+            if (!enrolling) {
+              setEnrollModalOpen(false);
+            }
+          }}
+          onConfirm={handleConfirmEnrollment}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function EnrollmentModal({
+  course,
+  amountLabel,
+  isFree,
+  lessonCount,
+  message,
+  enrolling,
+  onClose,
+  onConfirm,
+}) {
+  return (
+    <div className="student-enroll-modal-backdrop">
+      <article className="student-enroll-modal" aria-label="Confirm enrollment">
+        <div className="student-enroll-modal-header">
+          <div>
+            <span>Enrollment</span>
+            <h3>Confirm your course</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={enrolling}
+            aria-label="Close enrollment popup"
+          >
+            <X aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="student-enroll-summary">
+          <span>
+            <CheckCircle2 aria-hidden="true" />
+          </span>
+          <div>
+            <h4>{course?.name || "Untitled Course"}</h4>
+            <p>
+              You will get lifetime access to the course content after
+              enrollment.
+            </p>
+          </div>
+        </div>
+
+        <div className="student-enroll-details">
+          <div>
+            <small>{isFree ? "Access" : "Payment"}</small>
+            <strong>{amountLabel}</strong>
+          </div>
+          <div>
+            <small>Lessons</small>
+            <strong>{lessonCount || 0}</strong>
+          </div>
+          <div>
+            <small>Status</small>
+            <strong>Lifetime Access</strong>
+          </div>
+        </div>
+
+        {message ? <p className="student-enroll-message">{message}</p> : null}
+
+        <button
+          type="button"
+          className="student-enroll-confirm"
+          onClick={onConfirm}
+          disabled={enrolling}
+        >
+          {enrolling ? "Confirming..." : "Confirm Enrollment"}
+        </button>
+      </article>
+    </div>
   );
 }
 
@@ -251,6 +464,28 @@ function formatCourseAmount(amount) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })} LKR`;
+}
+
+async function resolveStudentId({ studentProfile, session }) {
+  if (studentProfile?.sid) {
+    return studentProfile.sid;
+  }
+
+  if (!session?.user?.id || !supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("student")
+    .select("sid")
+    .eq("auth_user_id", session.user.id)
+    .maybeSingle();
+
+  if (error) {
+    return null;
+  }
+
+  return data?.sid || null;
 }
 
 function getVideoPreview(url) {

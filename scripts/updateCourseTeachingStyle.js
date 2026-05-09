@@ -38,32 +38,10 @@ function getCourseStyle(counts) {
   if (winners.length === 1) {
     const style = winners[0];
 
-    const total = counts.v + counts.a + counts.r + counts.k;
-    const percentage = max / total;
-
-    if (style === "v") {
-      if (percentage >= 0.75) return "very_strong_visual";
-      if (percentage >= 0.55) return "strong_visual";
-      return "mild_visual";
-    }
-
-    if (style === "a") {
-      if (percentage >= 0.75) return "very_strong_aural";
-      if (percentage >= 0.55) return "strong_aural";
-      return "mild_aural";
-    }
-
-    if (style === "r") {
-      if (percentage >= 0.75) return "very_strong_read_write";
-      if (percentage >= 0.55) return "strong_read_write";
-      return "mild_read_write";
-    }
-
-    if (style === "k") {
-      if (percentage >= 0.75) return "very_strong_kinesthetic";
-      if (percentage >= 0.55) return "strong_kinesthetic";
-      return "mild_kinesthetic";
-    }
+    if (style === "v") return "visual";
+    if (style === "a") return "aural";
+    if (style === "r") return "read_write";
+    if (style === "k") return "kinesthetic";
   }
 
   return winners.join("");

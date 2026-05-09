@@ -12,6 +12,7 @@ import {
 import CoursePreviewPage from "./CoursePreviewPage";
 import CreateCoursePage from "./CreateCoursePage";
 import MyCoursesPage from "./MyCoursesPage";
+import TeacherAnalyticsPage from "./TeacherAnalyticsPage";
 
 const sidebarItems = [
   {
@@ -170,6 +171,8 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
               setActiveView("courses");
             }}
           />
+        ) : activeView === "analytics" ? (
+          <TeacherAnalyticsPage teacherProfile={teacherProfile} />
         ) : (
           <main
             className="teacher-dashboard-empty"

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "analyze:transcript": "node scripts/analyzeTranscript.js",
     "analyze:frames": "node scripts/analyzeFrames.js",
-    "courses:update-style": "node scripts/updateCourseTeachingStyle.js"
+    "courses:update-style": "node scripts/updateCourseTeachingStyle.js",
+    "teacher:insights": "node scripts/generateTeacherInsights.js"
   },
   "dependencies": {
     "@google/genai": "^1.52.0",
