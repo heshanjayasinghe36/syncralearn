@@ -144,6 +144,16 @@ async function updateStoredCourseProgress({
   progressPercent,
   completed,
 }) {
+  // Check if course was previously completed
+  const { data: existingRecord } = await supabase
+    .from("student_course")
+    .select("completed")
+    .eq("sid", studentId)
+    .eq("cid", courseId)
+    .single();
+
+  const wasPreviouslyCompleted = existingRecord?.completed || false;
+
   const now = new Date().toISOString();
   const payload = {
     sid: studentId,
@@ -165,8 +175,43 @@ async function updateStoredCourseProgress({
     throw error;
   }
 
+  // Send notification if course was just completed
+  if (completed && !wasPreviouslyCompleted) {
+    await sendCourseCompletionNotification(studentId, courseId);
+  }
+
   return {
     progressPercent,
     completed,
   };
+}
+
+async function sendCourseCompletionNotification(studentId, courseId) {
+  // Get course name
+  const { data: course } = await supabase
+    .from("course")
+    .select("name")
+    .eq("cid", courseId)
+    .single();
+
+  if (!course) {
+    return;
+  }
+
+  const title = "Course Completed!";
+  const message = `You have completed ${course.name}. Add a review!`;
+
+  const { error } = await supabase
+    .from("student_notification")
+    .insert({
+      sid: studentId,
+      title,
+      message,
+      type: "course_completion",
+      data: { course_id: courseId },
+    });
+
+  if (error) {
+    console.warn("Failed to send course completion notification:", error);
+  }
 }

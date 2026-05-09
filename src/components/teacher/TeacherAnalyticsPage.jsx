@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -16,15 +16,20 @@ import { supabase, supabaseConfigError } from "../../lib/supabase";
 
 const INSIGHTS_TABLE = "teacher_course_insights";
 
-export default function TeacherAnalyticsPage({ teacherProfile }) {
+export default function TeacherAnalyticsPage({
+  teacherProfile,
+  initialAnalyticsView = "insights",
+}) {
   const [insights, setInsights] = useState([]);
   const [selectedInsightId, setSelectedInsightId] = useState(null);
-  const [activeAnalyticsView, setActiveAnalyticsView] = useState("insights");
+  const [activeAnalyticsView, setActiveAnalyticsView] = useState(
+    initialAnalyticsView
+  );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
   const selectedInsight =
     insights.find((insight) => insight.id === selectedInsightId) || insights[0];
-  const summaryStats = useMemo(() => buildSummaryStats(insights), [insights]);
 
   useEffect(() => {
     let ignore = false;
@@ -107,6 +112,7 @@ export default function TeacherAnalyticsPage({ teacherProfile }) {
     const courseNamesById = await fetchCourseNames(
       (data || []).map((row) => row.cid).filter(Boolean)
     );
+
     const mappedInsights = (data || []).map((row) =>
       mapInsightRow(row, courseNamesById)
     );
@@ -128,24 +134,18 @@ export default function TeacherAnalyticsPage({ teacherProfile }) {
             <Brain aria-hidden="true" />
             Teacher Insights
           </span>
-          {/* <h2>Course Analytics</h2>
-          <p>
-            Gemini-generated teaching recommendations from watch behavior,
-            quiz attempts, and course progress.
-          </p> */}
         </div>
 
         <div className="teacher-analytics-header-actions">
           <div className="teacher-analytics-view-tabs" aria-label="Analytics view">
             <button
               type="button"
-              className={
-                activeAnalyticsView === "insights" ? "is-active" : ""
-              }
+              className={activeAnalyticsView === "insights" ? "is-active" : ""}
               onClick={() => setActiveAnalyticsView("insights")}
             >
               Insights
             </button>
+
             <button
               type="button"
               className={activeAnalyticsView === "graphs" ? "is-active" : ""}
@@ -172,33 +172,6 @@ export default function TeacherAnalyticsPage({ teacherProfile }) {
           <AlertTriangle aria-hidden="true" />
           <p>{message}</p>
         </div>
-      ) : null}
-
-      {activeAnalyticsView === "insights" ? (
-        <section className="teacher-analytics-stats" aria-label="Analytics stats">
-          <AnalyticsStat
-            icon={<Sparkles aria-hidden="true" />}
-            label="Insight reports"
-            value={String(summaryStats.reportCount)}
-          />
-          <AnalyticsStat
-            icon={<AlertTriangle aria-hidden="true" />}
-            label="High-risk courses"
-            value={String(summaryStats.highRiskCount)}
-            tone="warm"
-          />
-          <AnalyticsStat
-            icon={<LineChart aria-hidden="true" />}
-            label="Avg progress"
-            value={`${summaryStats.averageProgress}%`}
-          />
-          <AnalyticsStat
-            icon={<Users aria-hidden="true" />}
-            label="Students analyzed"
-            value={String(summaryStats.studentsAnalyzed)}
-            tone="purple"
-          />
-        </section>
       ) : null}
 
       {!loading && !message && insights.length > 0 ? (
@@ -242,18 +215,6 @@ function CourseTagChooser({ insights, selectedInsight, onSelectInsight }) {
   );
 }
 
-function AnalyticsStat({ icon, label, value, tone = "green" }) {
-  return (
-    <article className={`teacher-analytics-stat ${tone}`}>
-      <span>{icon}</span>
-      <div>
-        <p>{label}</p>
-        <strong>{value}</strong>
-      </div>
-    </article>
-  );
-}
-
 function AnalyticsEmptyState({ teacherId }) {
   return (
     <div className="teacher-analytics-empty-card">
@@ -287,9 +248,11 @@ function InsightDetail({ insight }) {
           <span className={`teacher-risk-pill ${insight.riskLevel}`}>
             {insight.riskLabel}
           </span>
+
           <h3>{insight.title}</h3>
           <p>{insight.summary || "No summary was generated for this report."}</p>
         </div>
+
         <small>
           {insight.model ? `Model: ${insight.model}` : "Model not recorded"}
         </small>
@@ -301,6 +264,7 @@ function InsightDetail({ insight }) {
           label="Enrolled"
           value={String(insight.metrics.enrollment?.enrolledStudents || 0)}
         />
+
         <MetricChip
           icon={<LineChart aria-hidden="true" />}
           label="Avg progress"
@@ -308,6 +272,7 @@ function InsightDetail({ insight }) {
             insight.metrics.enrollment?.averageProgressPercent || 0
           )}%`}
         />
+
         <MetricChip
           icon={<CheckCircle2 aria-hidden="true" />}
           label="Completion"
@@ -392,6 +357,7 @@ function ComparisonChart({ chart }) {
     width: 276,
     height: 144,
   };
+
   const xTicks = [0, chart.xMax / 2, chart.xMax];
   const yTicks = [0, chart.yMax / 2, chart.yMax];
 
@@ -402,6 +368,7 @@ function ComparisonChart({ chart }) {
           <strong>{chart.title}</strong>
           <p>{chart.description}</p>
         </div>
+
         <span>{chart.rows.length} items</span>
       </div>
 
@@ -428,6 +395,7 @@ function ComparisonChart({ chart }) {
                 y2={plot.top + plot.height}
                 className="grid-line"
               />
+
               <text x={x} y={plot.top + plot.height + 18} textAnchor="middle">
                 {formatAxisValue(tick, chart.xUnit)}
               </text>
@@ -447,6 +415,7 @@ function ComparisonChart({ chart }) {
                 y2={y}
                 className="grid-line"
               />
+
               <text x={plot.left - 10} y={y + 4} textAnchor="end">
                 {formatAxisValue(tick, chart.yUnit)}
               </text>
@@ -461,6 +430,7 @@ function ComparisonChart({ chart }) {
           y2={plot.top + plot.height}
           className="axis-line"
         />
+
         <line
           x1={plot.left}
           x2={plot.left}
@@ -480,6 +450,7 @@ function ComparisonChart({ chart }) {
                   {row.yDisplay}
                 </title>
               </circle>
+
               <text x={point.x} y={point.y + 4} textAnchor="middle">
                 {index + 1}
               </text>
@@ -495,6 +466,7 @@ function ComparisonChart({ chart }) {
         >
           {chart.xLabel}
         </text>
+
         <text
           className="axis-label"
           x="-100"
@@ -514,6 +486,7 @@ function ComparisonChart({ chart }) {
                 <b>{row.index}</b>
                 {row.label}
               </span>
+
               <small>
                 {row.xDisplay} / {row.yDisplay}
               </small>
@@ -542,6 +515,7 @@ function InsightSection({ icon, title, items, emptyText }) {
         {icon}
         {title}
       </h4>
+
       {items.length > 0 ? (
         <div className="teacher-analytics-action-list">
           {items.map((item, index) => (
@@ -562,6 +536,7 @@ function FindingSection({ icon, title, findings, emptyText }) {
         {icon}
         {title}
       </h4>
+
       {findings.length > 0 ? (
         <div className="teacher-analytics-finding-list">
           {findings.map((finding, index) => (
@@ -569,8 +544,10 @@ function FindingSection({ icon, title, findings, emptyText }) {
               <strong>
                 {finding.video_name || finding.quiz_name || finding.finding}
               </strong>
+
               {finding.finding ? <p>{finding.finding}</p> : null}
               {finding.evidence ? <small>{finding.evidence}</small> : null}
+
               {finding.recommendation ? (
                 <span>{finding.recommendation}</span>
               ) : null}
@@ -598,11 +575,13 @@ function HotspotSection({ videos }) {
         <Clock3 aria-hidden="true" />
         Watch behavior hotspots
       </h4>
+
       {videosWithHotspots.length > 0 ? (
         <div className="teacher-analytics-hotspots">
           {videosWithHotspots.map((video) => (
             <article key={video.vid}>
               <strong>{video.name}</strong>
+
               <HotspotRow label="Most skipped" values={video.skippedHotspots} />
               <HotspotRow
                 label="Most rewatched"
@@ -650,6 +629,7 @@ function QuizMetricSection({ quizzes }) {
         <ListChecks aria-hidden="true" />
         Quiz performance
       </h4>
+
       <div className="teacher-analytics-quiz-grid">
         {quizzes.map((quiz) => (
           <article key={quiz.qid}>
@@ -705,8 +685,7 @@ function buildComparisonCharts({ videos, quizzes, lessons }) {
     charts.push({
       title: "Video vs quiz outcome",
       tone: "amber",
-      description:
-        "Compare lesson watch completion with quiz result strength.",
+      description: "Compare lesson watch completion with quiz result strength.",
       xLabel: "Video completion",
       yLabel: "Quiz grade",
       xUnit: "%",
@@ -803,10 +782,12 @@ async function fetchCourseNames(courseIds) {
 function mapInsightRow(row, courseNamesById) {
   const insightJson = normalizeJson(row.insight_json);
   const metricsJson = normalizeJson(row.metrics_json);
+
   const courseName =
     courseNamesById[String(row.cid)] ||
     metricsJson.course?.name ||
     `Course ${row.cid}`;
+
   const riskLevel = normalizeRiskLevel(
     row.risk_level || insightJson.risk_level
   );
@@ -823,24 +804,6 @@ function mapInsightRow(row, courseNamesById) {
     metrics: metricsJson,
     model: row.model || "",
     generatedAt: row.generated_at || null,
-  };
-}
-
-function buildSummaryStats(insights) {
-  const progressValues = insights.map(
-    (insight) => insight.metrics.enrollment?.averageProgressPercent || 0
-  );
-
-  return {
-    reportCount: insights.length,
-    highRiskCount: insights.filter((insight) => insight.riskLevel === "high")
-      .length,
-    averageProgress: Math.round(average(progressValues)),
-    studentsAnalyzed: insights.reduce(
-      (total, insight) =>
-        total + Number(insight.metrics.enrollment?.enrolledStudents || 0),
-      0
-    ),
   };
 }
 
@@ -898,20 +861,6 @@ function toArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function average(values) {
-  const validValues = values
-    .map((value) => Number(value))
-    .filter((value) => Number.isFinite(value));
-
-  if (validValues.length === 0) {
-    return 0;
-  }
-
-  return (
-    validValues.reduce((total, value) => total + value, 0) / validValues.length
-  );
-}
-
 function getPointPosition(row, chart, plot) {
   const xPercent = clampPercent((Number(row.xValue || 0) / chart.xMax) * 100);
   const yPercent = clampPercent((Number(row.yValue || 0) / chart.yMax) * 100);
@@ -934,6 +883,7 @@ function getChartMax(values) {
 
 function formatAxisValue(value, unit) {
   const numberValue = Number(value || 0);
+
   const cleanValue = Number.isInteger(numberValue)
     ? String(numberValue)
     : String(round(numberValue));

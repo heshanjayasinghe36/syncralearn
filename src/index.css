@@ -1417,18 +1417,21 @@ body::selection {
     right: 0;
     z-index: 35;
     display: grid;
-    min-width: 13rem;
+    min-width: 18rem;
     gap: 0.45rem;
     border: 1px solid rgba(210, 229, 228, 0.82);
     border-radius: 1rem;
     background: rgba(255, 255, 255, 0.96);
     padding: 0.55rem;
     box-shadow: 0 18px 42px rgba(37, 75, 68, 0.16);
+    text-align: left;
   }
 
   .student-profile-menu div {
     display: grid;
     gap: 0.1rem;
+    justify-items: start;
+    align-items: start;
     border-radius: 0.8rem;
     background: rgba(233, 248, 243, 0.68);
     padding: 0.65rem 0.75rem;
@@ -1438,16 +1441,19 @@ body::selection {
     color: #17231f;
     font-size: 0.86rem;
     font-weight: 850;
+    width: 100%;
   }
 
   .student-profile-menu div span {
     min-width: 0;
-    overflow: hidden;
+    display: block;
+    overflow: visible;
     color: #65746f;
     font-size: 0.72rem;
     font-weight: 650;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    text-align: left;
   }
 
   .student-profile-menu button {
@@ -1498,6 +1504,325 @@ body::selection {
     background: rgba(115, 226, 211, 0.12);
   }
 
+.student-notification-menu-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 2.9rem;
+  padding-left: 0.8rem;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  border-radius: 999px;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 850;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+.student-notification-menu {
+  position: absolute;
+  top: calc(100% + 0.7rem);
+  right: 0;
+  z-index: 35;
+  display: grid;
+  min-width: 22rem;
+  gap: 0.2rem;
+  border: 1px solid rgba(210, 229, 228, 0.82);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 0.55rem;
+  box-shadow: 0 18px 42px rgba(37, 75, 68, 0.16);
+}
+
+.student-notification-item {
+  display: grid;
+  gap: 0.75rem;
+  border-radius: 0.8rem;
+  padding: 0.75rem;
+  background: none;
+  transition: background-color 180ms ease;
+}
+
+.student-notification-item:hover {
+  background: rgba(0, 182, 159, 0.08);
+}
+
+.student-notification-item.unread {
+  background: rgba(251, 191, 36, 0.08);
+  border-left: 3px solid #fbbf24;
+}
+
+.student-notification-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.student-notification-item-body:hover {
+  background: transparent;
+}
+
+.student-notification-item-body strong {
+  display: block;
+  color: #17231f;
+  font-size: 0.86rem;
+  font-weight: 850;
+  margin: 0;
+}
+
+.student-notification-item-body p {
+  margin: 0;
+  color: #65746f;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
+}
+
+.student-notification-clear {
+  justify-self: end;
+  align-self: start;
+  border: 1px solid rgba(210, 229, 228, 0.82);
+  background: none;
+  border-radius: 0.75rem;
+  padding: 0.45rem 0.85rem;
+  color: #215c51;
+  font-size: 0.75rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+.student-notification-clear:hover {
+  background: rgba(0, 182, 159, 0.08);
+  border-color: rgba(0, 182, 159, 0.2);
+}
+
+.student-notification-menu button p {
+  margin: 0;
+  color: #65746f;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
+}
+
+.student-notification-menu > p {
+  padding: 1rem;
+  margin: 0;
+  color: #65746f;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.dark .student-notification-menu {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(18, 31, 38, 0.98);
+}
+
+.dark .student-notification-menu button {
+  color: #b7f4e6;
+}
+
+.dark .student-notification-menu button:hover {
+  background: rgba(115, 226, 211, 0.12);
+}
+
+.dark .student-notification-menu button.unread {
+  background: rgba(245, 158, 11, 0.1);
+  border-left-color: #fbbf24;
+}
+
+.dark .student-notification-menu button strong {
+  color: #f8fbff;
+}
+
+.dark .student-notification-menu button p {
+  color: rgba(245, 251, 248, 0.62);
+}
+
+.dark .student-notification-menu p {
+  color: rgba(245, 251, 248, 0.62);
+}
+
+.review-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.review-popup {
+  border: 1px solid rgba(210, 229, 228, 0.82);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 1.5rem;
+  max-width: 28rem;
+  width: 90%;
+  box-shadow: 0 24px 52px rgba(37, 75, 68, 0.16);
+}
+
+.review-popup h3 {
+  margin: 0 0 1rem 0;
+  color: #17231f;
+  font-size: 1.1rem;
+  font-weight: 850;
+  text-align: center;
+}
+
+.review-rating {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.review-rating button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #d1d5db;
+  transition: all 180ms ease;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+}
+
+.review-rating button:hover {
+  color: #fbbf24;
+  transform: scale(1.1);
+}
+
+.review-rating button.active {
+  color: #fbbf24;
+}
+
+.review-popup textarea {
+  width: 100%;
+  min-height: 6rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(210, 229, 228, 0.72);
+  border-radius: 0.8rem;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: #17231f;
+  background: rgba(233, 248, 243, 0.4);
+  margin-bottom: 1.25rem;
+  transition: border-color 180ms ease;
+}
+
+.review-popup textarea:focus {
+  outline: none;
+  border-color: rgba(0, 156, 139, 0.42);
+  background: rgba(233, 248, 243, 0.6);
+}
+
+.review-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.review-actions button {
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.78rem;
+  font-weight: 850;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 180ms ease;
+  border: 1px solid rgba(210, 229, 228, 0.72);
+}
+
+.review-actions button:first-child {
+  background: none;
+  color: #65746f;
+}
+
+.review-actions button:first-child:hover {
+  background: rgba(233, 248, 243, 0.4);
+  border-color: rgba(0, 156, 139, 0.3);
+}
+
+.review-actions button:last-child {
+  background: linear-gradient(145deg, #20b9aa, #008b7d);
+  border-color: #20b9aa;
+  color: white;
+  box-shadow: 0 4px 12px rgba(32, 185, 170, 0.3);
+}
+
+.review-actions button:last-child:hover {
+  background: linear-gradient(145deg, #008b7d, #006e64);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(32, 185, 170, 0.4);
+}
+
+.dark .review-popup {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(18, 31, 38, 0.98);
+}
+
+.dark .review-popup h3 {
+  color: #f8fbff;
+}
+
+.dark .review-popup textarea {
+  background: rgba(115, 226, 211, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fbff;
+}
+
+.dark .review-popup textarea:focus {
+  background: rgba(115, 226, 211, 0.12);
+  border-color: rgba(115, 226, 211, 0.3);
+}
+
+.dark .review-actions button:first-child {
+  color: rgba(245, 251, 248, 0.62);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark .review-actions button:first-child:hover {
+  background: rgba(115, 226, 211, 0.08);
+  border-color: rgba(115, 226, 211, 0.2);
+}
+
+.dark .review-actions button:last-child {
+  background: linear-gradient(145deg, #20b9aa, #008b7d);
+  border-color: #20b9aa;
+}
+
   .teacher-signout-button {
     border: 1px solid rgba(174, 232, 216, 0.8);
     border-radius: 999px;
@@ -1527,6 +1852,312 @@ body::selection {
   .student-dashboard-course-sections {
     display: grid;
     gap: 2rem;
+  }
+
+  .student-study-plan-page {
+    display: grid;
+    gap: 1.5rem;
+    max-width: 860px;
+    width: 100%;
+  }
+
+  .student-study-plan-header {
+    padding: 1.5rem;
+    border-radius: 1rem;
+    background: rgba(242, 247, 255, 0.95);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+
+  .student-study-plan-header h2 {
+    margin-bottom: 0.5rem;
+  }
+
+  .student-study-plan-shell {
+    display: grid;
+    gap: 1.75rem;
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  .student-study-plan-intro {
+    display: grid;
+    place-items: center;
+    gap: 1rem;
+    padding: 2.5rem 2rem;
+    border-radius: 2rem;
+    background: linear-gradient(180deg, rgba(251, 249, 255, 0.98), rgba(242, 248, 255, 0.96));
+    box-shadow: 0 30px 70px rgba(15, 23, 42, 0.08);
+    text-align: center;
+  }
+
+  .student-study-plan-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1.3rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(240, 229, 255, 0.95), rgba(249, 247, 255, 0.95));
+    color: #7c3aed;
+    font-size: 0.88rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid rgba(229, 231, 235, 0.9);
+  }
+
+  .student-study-plan-heading h2 {
+    font-size: clamp(2rem, 3vw, 3rem);
+    margin: 0;
+    line-height: 1.04;
+    color: #111827;
+  }
+
+  .student-study-plan-heading p {
+    margin: 0;
+    max-width: 62rem;
+    color: rgba(15, 23, 42, 0.7);
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+
+  .student-study-plan-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .student-study-plan-step {
+    padding: 1.5rem 1.35rem;
+    border-radius: 2rem;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.05);
+    border: 1px solid rgba(229, 231, 235, 0.9);
+    min-height: 12rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .student-study-plan-step-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    background: rgba(248, 242, 255, 1);
+    color: #7c3aed;
+    flex-shrink: 0;
+  }
+
+  .student-study-plan-step-number {
+    margin-right: 0.45rem;
+    color: #7c3aed;
+    font-weight: 800;
+  }
+
+  .student-study-plan-step h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #111827;
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .student-study-plan-step p {
+    margin: 0.5rem 0 0;
+    color: rgba(15, 23, 42, 0.72);
+    line-height: 1.75;
+    font-size: 0.95rem;
+  }
+
+  .student-study-plan-schedule-card {
+    display: grid;
+    gap: 1.1rem;
+    padding: 1.75rem;
+    border-radius: 2rem;
+    background: white;
+    box-shadow: 0 30px 70px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(229, 231, 235, 0.95);
+  }
+
+  .student-study-plan-schedule-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .student-study-plan-schedule-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .student-study-plan-schedule-title svg {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #34d399;
+    background: rgba(34, 197, 94, 0.12);
+    border-radius: 0.95rem;
+    padding: 0.45rem;
+  }
+
+  .student-study-plan-section-label {
+    display: inline-flex;
+    margin-bottom: 0.35rem;
+    color: #4338ca;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .student-study-plan-schedule-header h3 {
+    margin: 0;
+    font-size: clamp(1.25rem, 2vw, 1.7rem);
+    color: #111827;
+    font-weight: 700;
+  }
+
+  .student-study-plan-apply-all {
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    border-radius: 999px;
+    padding: 0.85rem 1.2rem;
+    background: #f8fafc;
+    color: #1f2937;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease;
+  }
+
+  .student-study-plan-apply-all:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
+  }
+
+  .student-study-plan-days {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .student-study-plan-day-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.2rem 1.45rem;
+    border-radius: 999px;
+    background: white;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    min-height: 4rem;
+  }
+
+  .student-study-plan-day-label strong {
+    font-size: 1rem;
+    color: #0f172a;
+    min-width: 7rem;
+    font-weight: 700;
+  }
+
+  .student-study-plan-day-row-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  .student-study-plan-day-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .student-study-plan-slot {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.75rem 1rem;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #111827;
+    font-size: 0.92rem;
+    font-weight: 700;
+    border: 1px solid rgba(226, 232, 240, 1);
+  }
+
+  .student-study-plan-slot.empty {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 700;
+    border: 1px dashed rgba(148, 163, 184, 0.5);
+  }
+
+  .student-study-plan-add-slot {
+    border: 1px dashed rgba(148, 163, 184, 0.5);
+    border-radius: 999px;
+    padding: 0.82rem 1rem;
+    background: white;
+    color: #0f172a;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease;
+  }
+
+  .student-study-plan-add-slot:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+  }
+
+  .student-study-plan-footer {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    padding: 1.8rem 1.95rem;
+    border-radius: 2rem;
+    background: linear-gradient(180deg, rgba(239, 246, 255, 0.95), rgba(250, 250, 255, 0.95));
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
+
+  .student-study-plan-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.9rem;
+    border: none;
+    border-radius: 999px;
+    background: #064e3b;
+    color: white;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 20px 40px rgba(15, 118, 110, 0.22);
+  }
+
+  .student-study-plan-action svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .student-study-plan-footer p {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: rgba(15, 23, 42, 0.72);
+    font-size: 0.95rem;
+  }
+
+  .student-study-plan-footer-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    background: #0f766e;
   }
 
   .student-suggestions-section {
@@ -1746,6 +2377,24 @@ body::selection {
     height: 100%;
     border-radius: inherit;
     background: linear-gradient(90deg, #347464, #7fd2c6);
+  }
+
+  .student-course-review-button {
+    width: fit-content;
+    border: 1px solid rgba(32, 185, 170, 0.45);
+    background: rgba(32, 185, 170, 0.08);
+    color: #163f37;
+    border-radius: 0.8rem;
+    padding: 0.55rem 0.95rem;
+    font-size: 0.81rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background-color 180ms ease, transform 180ms ease;
+  }
+
+  .student-course-review-button:hover {
+    background: rgba(32, 185, 170, 0.18);
+    transform: translateY(-1px);
   }
 
   .dark .student-suggestions-header span {
@@ -2179,6 +2828,62 @@ body::selection {
     width: 1rem;
     height: 1rem;
     color: #008b7d;
+  }
+
+  .student-preview-reviews-card {
+    width: 100%;
+    border: 1px solid rgba(185, 239, 223, 0.85);
+    border-top: 4px solid #b9efdf;
+    border-radius: 1.65rem;
+    background: rgba(255, 255, 255, 0.9);
+    padding: clamp(1.1rem, 2vw, 1.35rem);
+    box-shadow: 0 22px 52px rgba(37, 75, 68, 0.08);
+  }
+
+  .student-preview-reviews-card h3 {
+    color: #111827;
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 0.85rem;
+  }
+
+  .student-preview-review-item {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.95rem;
+    border-radius: 1rem;
+    background: rgba(233, 248, 243, 0.6);
+  }
+
+  .student-preview-review-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #235d50;
+    font-weight: 700;
+  }
+
+  .student-preview-review-rating svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    color: #d1d5db;
+  }
+
+  .student-preview-review-rating svg.active {
+    color: #fbbf24;
+  }
+
+  .student-preview-review-item p {
+    margin: 0;
+    color: #47605a;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .student-preview-review-item small {
+    color: #6b7280;
+    font-size: 0.72rem;
+    font-weight: 700;
   }
 
   .student-preview-curriculum {
@@ -6975,6 +7680,10 @@ body::selection {
     text-transform: uppercase;
   }
 
+  .teacher-analytics-chart-section {
+    margin-top: 1.5rem;
+  }
+
   .teacher-analytics-chart-legend {
     display: flex;
     flex-wrap: wrap;
@@ -7039,6 +7748,66 @@ body::selection {
     font-weight: 900;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+
+  .teacher-analytics-chart-grid-lines {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .teacher-analytics-chart-grid-line {
+    position: relative;
+    min-height: 0.5rem;
+    border-top: 1px dashed rgba(99, 115, 130, 0.12);
+  }
+
+  .teacher-analytics-chart-grid-line span {
+    position: absolute;
+    top: -1rem;
+    left: 0;
+    color: #475569;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  .teacher-analytics-course-bars {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1rem;
+    align-items: end;
+    min-height: 12rem;
+  }
+
+  .teacher-analytics-course-bar-item {
+    display: grid;
+    align-items: end;
+    gap: 0.5rem;
+  }
+
+  .teacher-analytics-course-bar {
+    position: relative;
+    width: 100%;
+    min-height: 1.5rem;
+    background: linear-gradient(180deg, rgba(32, 185, 170, 0.24), rgba(32, 185, 170, 0.8));
+    border-radius: 1rem 1rem 0 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 0.3rem;
+    color: #0f172a;
+    font-size: 0.72rem;
+    font-weight: 800;
+    overflow: hidden;
+  }
+
+  .teacher-analytics-course-bar small {
+    color: #475569;
+    font-size: 0.75rem;
+    text-align: center;
+    word-break: break-word;
+    line-height: 1.2;
   }
 
   .teacher-analytics-xy-chart .xy-point circle {
@@ -8098,5 +8867,850 @@ body::selection {
       height: 3.25rem;
       margin-bottom: 1rem;
     }
+  }
+}
+
+.study-plan-page {
+  min-height: 100vh;
+  padding: 22px 24px 36px;
+  background: #f5f7f8;
+  color: #0f172a;
+}
+
+.study-plan-hero {
+  text-align: center;
+  max-width: 620px;
+  margin: 0 auto 22px;
+}
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #f6d7ff;
+  color: #9333ea;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.study-plan-hero h1 {
+  font-size: 28px;
+  margin: 0 0 8px;
+  font-weight: 800;
+}
+
+.study-plan-hero p {
+  max-width: 560px;
+  margin: 0 auto;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.study-plan-steps {
+  max-width: 900px;
+  margin: 0 auto 26px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.study-step {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 18px;
+  min-height: 122px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  border-top: 2px solid transparent;
+}
+
+.step-green {
+  border-color: #7dd3b0;
+}
+
+.step-orange {
+  border-color: #fed7aa;
+}
+
+.step-purple {
+  border-color: #f0abfc;
+}
+
+.step-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 13px;
+  background: #f1f5f9;
+}
+
+.step-green .step-icon {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.step-orange .step-icon {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.step-purple .step-icon {
+  color: #7e22ce;
+  background: #f3e8ff;
+}
+
+.study-step h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.study-step p {
+  margin: 0;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.weekly-header {
+  max-width: 900px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.weekly-header h2 {
+  font-size: 21px;
+  margin: 0;
+}
+
+.apply-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-size: 12px;
+}
+
+.availability-list {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  gap: 11px;
+}
+
+.availability-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 18px;
+  min-height: 62px;
+  padding: 12px 18px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.day-name {
+  font-weight: 700;
+  color: #0f766e;
+  font-size: 13px;
+}
+
+.time-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+}
+
+.time-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 6px 8px;
+}
+
+.time-slot input {
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 11px;
+  outline: none;
+}
+
+.time-slot span {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.remove-slot {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  background: #fee2e2;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.add-slot {
+  border: 1px dashed #94a3b8;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #64748b;
+  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.generate-plan-section {
+  text-align: center;
+  margin-top: 34px;
+}
+
+.generate-plan-btn {
+  border: none;
+  border-radius: 999px;
+  background: #28715f;
+  color: #ffffff;
+  padding: 13px 30px;
+  font-size: 15px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(40, 113, 95, 0.2);
+}
+
+.generate-plan-section p {
+  margin-top: 13px;
+  color: #475569;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+@media (max-width: 768px) {
+  .study-plan-page {
+    padding: 20px 14px 32px;
+  }
+
+  .study-plan-hero h1 {
+    font-size: 24px;
+  }
+
+  .study-plan-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .weekly-header {
+    align-items: flex-start;
+    gap: 10px;
+    flex-direction: column;
+  }
+
+  .availability-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .generate-plan-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.adjust-availability-btn {
+  border: none;
+  border-radius: 999px;
+  background: #e8f3ef;
+  color: #28715f;
+  padding: 9px 15px;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.generated-study-plan {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.study-plan-summary-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.study-plan-small-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #28715f;
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.study-plan-summary-card h3 {
+  margin: 0 0 7px;
+  font-size: 18px;
+}
+
+.study-plan-summary-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.study-plan-hours-card {
+  min-width: 105px;
+  border-radius: 16px;
+  background: #f5f7f8;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  text-align: center;
+}
+
+.study-plan-hours-card strong {
+  font-size: 26px;
+  color: #28715f;
+}
+
+.study-plan-hours-card span {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.study-plan-days-list {
+  display: grid;
+  gap: 12px;
+}
+
+.study-plan-day-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.study-plan-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.study-plan-day-header h3 {
+  margin: 0;
+  color: #0f766e;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.study-plan-day-header span {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.no-study-session {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.study-plan-session-list {
+  display: grid;
+  gap: 10px;
+}
+
+.study-plan-session-card {
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.study-plan-session-time {
+  color: #28715f;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.study-plan-session-body {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.study-plan-session-body h4 {
+  margin: 0 0 5px;
+  font-size: 14px;
+}
+
+.study-plan-session-body p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.study-plan-session-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.study-plan-session-tags span {
+  height: fit-content;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  padding: 5px 9px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.priority-tag.high {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.priority-tag.medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.priority-tag.low {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.study-plan-tips {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+  margin-top: 14px;
+}
+
+.study-plan-tips h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.study-plan-tips ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+@media (max-width: 768px) {
+  .study-plan-summary-card {
+    flex-direction: column;
+  }
+
+  .study-plan-session-body {
+    flex-direction: column;
+  }
+
+  .study-plan-session-tags {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .adjust-availability-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.student-course-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.student-course-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-course-rating svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.teacher-overview-page {
+  width: 100%;
+}
+
+.teacher-overview-page .teacher-analytics-header {
+  margin-bottom: 1px;
+}
+
+.teacher-overview-page .teacher-analytics-header h2 {
+  margin: 16px 0 8px;
+  font-size: 28px;
+  color: #0f172a;
+}
+
+.teacher-overview-page .teacher-analytics-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.teacher-overview-page .teacher-analytics-stats {
+  margin-top: 1px;
+}
+
+.teacher-overview-completion-card {
+  margin-top: 1.5rem;
+}
+
+.teacher-overview-completion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.teacher-overview-completion-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.teacher-overview-completion-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.teacher-overview-completion-pills span {
+  border-radius: 999px;
+  background: rgba(206, 229, 236, 0.6);
+  color: #164e63;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.35rem 0.75rem;
+  white-space: nowrap;
+}
+
+.teacher-overview-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
+  margin-top: 1.4rem;
+}
+
+@media (max-width: 900px) {
+  .teacher-overview-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.teacher-overview-chart-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .teacher-overview-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.teacher-overview-chart-side {
+  display: grid;
+  gap: 1rem;
+}
+
+.teacher-overview-review-card {
+  border: 1px solid rgba(210, 229, 228, 0.72);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1.15rem;
+  box-shadow: 0 18px 42px rgba(37, 75, 68, 0.08);
+}
+
+.teacher-overview-review-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(210, 229, 228, 0.72);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.teacher-overview-review-card-head p {
+  margin: 0;
+  color: #4b5870;
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.teacher-overview-review-card-head strong {
+  display: block;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.teacher-overview-review-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.teacher-overview-review-item {
+  display: grid;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  background: rgba(248, 250, 252, 0.88);
+  padding: 1rem;
+}
+
+.teacher-overview-review-meta {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.teacher-overview-review-course {
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.teacher-overview-review-rating {
+  color: #007c70;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.teacher-overview-review-stars {
+  color: #f59e0b;
+  letter-spacing: 0.02em;
+}
+
+.teacher-overview-review-item p {
+  margin: 0;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.teacher-overview-review-date {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.teacher-overview-empty-review {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.teacher-overview-completion-card {
+  margin-top: 1.4rem;
+  width: 100%;
+  border: 1px solid rgba(210, 229, 228, 0.72);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1.15rem 1.15rem 1rem;
+  box-shadow: 0 18px 42px rgba(37, 75, 68, 0.08);
+}
+
+.teacher-overview-completion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.teacher-overview-completion-header h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.teacher-overview-completion-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.teacher-overview-completion-pills span {
+  border-radius: 999px;
+  background: rgba(233, 248, 243, 0.9);
+  padding: 0.34rem 0.64rem;
+  color: #347464;
+  font-size: 0.62rem;
+  font-weight: 850;
+}
+
+.teacher-overview-bar-chart {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(3.8rem, 1fr));
+  align-items: end;
+  gap: 0.55rem;
+  min-height: 10.5rem;
+  padding: 0.8rem 0.25rem 0;
+}
+
+.teacher-overview-bar-item {
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.teacher-overview-bar-track {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 3.3rem;
+  height: 8.5rem;
+  border-radius: 999px 999px 0 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.teacher-overview-bar-fill {
+  position: relative;
+  width: 100%;
+  min-height: 0.8rem;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(233, 248, 243, 0.98),
+    rgba(221, 244, 237, 0.92)
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.teacher-overview-bar-dot {
+  position: absolute;
+  top: -0.25rem;
+  left: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #347464;
+  box-shadow: 0 0 0 0.18rem rgba(52, 116, 100, 0.08);
+  transform: translateX(-50%);
+}
+
+.teacher-overview-bar-item small {
+  width: 100%;
+  min-height: 1.8rem;
+  overflow: hidden;
+  color: #6b7b94;
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.teacher-overview-chart-wrap {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: stretch;
+}
+
+.teacher-overview-y-axis {
+  display: flex;
+  height: 8.5rem;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: 0.1rem;
+  color: #6b7b94;
+  font-size: 0.58rem;
+  font-weight: 850;
+  line-height: 1;
+  text-align: right;
+}
+
+.teacher-overview-bar-chart {
+  position: relative;
+}
+
+.teacher-overview-card-grid .teacher-overview-completion-card,
+.teacher-overview-card-grid .teacher-overview-review-card {
+  width: 100%;
+  margin-top: 0;
+}
+
+.teacher-overview-review-card-head span {
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 850;
+}
+
+@media (max-width: 1100px) {
+  .teacher-overview-card-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -13,6 +13,7 @@ import CoursePreviewPage from "./CoursePreviewPage";
 import CreateCoursePage from "./CreateCoursePage";
 import MyCoursesPage from "./MyCoursesPage";
 import TeacherAnalyticsPage from "./TeacherAnalyticsPage";
+import TeacherOverviewPage from "./TeacherOverviewPage";
 
 const sidebarItems = [
   {
@@ -33,15 +34,17 @@ const sidebarItems = [
 ];
 
 export default function TeacherDashboard({ session, onSignOut, teacherProfile }) {
-  const [activeView, setActiveView] = useState("courses");
+  const [activeView, setActiveView] = useState("overview");
   const [courseModalOpen, setCourseModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
+
   const displayName =
     teacherProfile?.full_name ||
     session?.user?.user_metadata?.full_name ||
     session?.user?.user_metadata?.name ||
     session?.user?.email?.split("@")[0] ||
     "Teacher";
+
   const initials = getInitials(displayName);
 
   if (activeView === "course-preview") {
@@ -64,6 +67,7 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
           <div className="teacher-brand-mark">
             <GraduationCap aria-hidden="true" />
           </div>
+
           <div>
             <p className="teacher-brand-name">Syncra Learn</p>
             <p className="teacher-brand-kicker">Teacher Portal</p>
@@ -76,7 +80,7 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
               key={label}
               type="button"
               onClick={() => {
-                if (id === "courses") {
+                if (id === "courses" || id === "overview" || id === "analytics") {
                   setSelectedCourse(null);
                 }
 
@@ -123,6 +127,7 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
             >
               <Bell aria-hidden="true" />
             </button>
+
             <button
               type="button"
               className="teacher-icon-button"
@@ -145,7 +150,9 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
           </div>
         </header>
 
-        {activeView === "courses" ? (
+        {activeView === "overview" ? (
+          <TeacherOverviewPage teacherProfile={teacherProfile} />
+        ) : activeView === "courses" ? (
           <MyCoursesPage
             teacherProfile={teacherProfile}
             modalOpen={courseModalOpen}
@@ -172,7 +179,10 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
             }}
           />
         ) : activeView === "analytics" ? (
-          <TeacherAnalyticsPage teacherProfile={teacherProfile} />
+          <TeacherAnalyticsPage
+            teacherProfile={teacherProfile}
+            initialAnalyticsView="graphs"
+          />
         ) : (
           <main
             className="teacher-dashboard-empty"
@@ -185,6 +195,10 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
 }
 
 function isSidebarItemActive(id, activeView) {
+  if (id === "overview") {
+    return activeView === "overview";
+  }
+
   if (id === "courses") {
     return (
       activeView === "courses" ||

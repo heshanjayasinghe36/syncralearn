@@ -54,6 +54,8 @@ export default function CoursePreviewPage({
   backLabel = "Back to My Courses",
   enableVideoTracking = false,
   studentId = null,
+  initialLessonId = null,
+  onLessonSelect = () => {},
 }) {
   const [lessons, setLessons] = useState([]);
   const [lessonContent, setLessonContent] = useState({});
@@ -145,7 +147,17 @@ export default function CoursePreviewPage({
       } else {
         const mappedLessons = (data || []).map(mapPreviewLesson);
         setLessons(mappedLessons);
-        setSelectedLessonId(mappedLessons[0]?.id || null);
+        const nextLessonId = mappedLessons.some(
+          (lesson) => lesson.id === initialLessonId
+        )
+          ? initialLessonId
+          : mappedLessons[0]?.id || null;
+
+        setSelectedLessonId(nextLessonId);
+        setActiveContentIndex(0);
+        if (nextLessonId) {
+          onLessonSelect(nextLessonId);
+        }
 
         const { content, error: contentError } =
           await loadPreviewLessonContent(mappedLessons);
@@ -297,6 +309,7 @@ export default function CoursePreviewPage({
                     onClick={() => {
                       setSelectedLessonId(lesson.id);
                       setActiveContentIndex(0);
+                      onLessonSelect(lesson.id);
                     }}
                   >
                     {index + 1}
@@ -351,6 +364,7 @@ export default function CoursePreviewPage({
                 onClick={() => {
                   setSelectedLessonId(lesson.id);
                   setActiveContentIndex(0);
+                  onLessonSelect(lesson.id);
                 }}
               />
             ))

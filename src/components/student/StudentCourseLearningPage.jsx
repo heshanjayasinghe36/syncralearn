@@ -5,6 +5,8 @@ export default function StudentCourseLearningPage({
   displayName,
   onBack,
   studentId,
+  initialLessonId,
+  onLessonSelect,
 }) {
   return (
     <CoursePreviewPage
@@ -16,6 +18,8 @@ export default function StudentCourseLearningPage({
       backLabel="Back to courses"
       enableVideoTracking
       studentId={studentId}
+      initialLessonId={initialLessonId}
+      onLessonSelect={onLessonSelect}
     />
   );
 }

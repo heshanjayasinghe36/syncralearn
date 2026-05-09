@@ -10,12 +10,14 @@ import {
   Search,
   Settings,
   Sparkles,
+  Star,
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
 import { getVarkStyleKeys, getVarkStyleLabel } from "../../lib/vark";
 import StudentCourseLearningPage from "./StudentCourseLearningPage";
 import StudentCoursePreviewPage from "./StudentCoursePreviewPage";
 import StudentSettingsPage from "./StudentSettingsPage";
+import StudentStudyPlanPage from "./StudentStudyPlanPage";
 
 const sidebarItems = [
   {
@@ -27,6 +29,11 @@ const sidebarItems = [
     id: "courses",
     label: "Courses",
     icon: <BookOpen aria-hidden="true" />,
+  },
+  {
+    id: "study-plan",
+    label: "Study Plan",
+    icon: <Sparkles aria-hidden="true" />,
   },
 ];
 
@@ -43,19 +50,30 @@ export default function StudentDashboard({
   const [suggestedCourses, setSuggestedCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [savedCourseLessonSelection, setSavedCourseLessonSelection] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [loadingEnrolledCourses, setLoadingEnrolledCourses] = useState(false);
   const [suggestionMessage, setSuggestionMessage] = useState("");
   const [enrolledCoursesMessage, setEnrolledCoursesMessage] = useState("");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [reviewPopup, setReviewPopup] = useState(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+
   const profileMenuRef = useRef(null);
+  const notificationMenuRef = useRef(null);
+
   const effectiveStudentProfile = localStudentProfile || studentProfile;
+
   const displayName =
     effectiveStudentProfile?.full_name ||
     session?.user?.user_metadata?.full_name ||
     session?.user?.user_metadata?.name ||
     session?.user?.email?.split("@")[0] ||
     "Student";
+
   const initials = getInitials(displayName);
   const learningStyle = effectiveStudentProfile?.mls || "";
   const studentId = effectiveStudentProfile?.sid || null;
@@ -69,10 +87,68 @@ export default function StudentDashboard({
     setLocalStudentProfile(studentProfile);
   }, [studentProfile]);
 
+  async function deleteNotification(nid) {
+    if (!supabase || !nid) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("student_notification")
+      .delete()
+      .eq("nid", nid);
+
+    if (error) {
+      console.warn("Failed to delete notification:", error.message);
+      return;
+    }
+
+    setNotifications((prev) =>
+      prev.filter((notification) => notification.nid !== nid)
+    );
+  }
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadNotifications() {
+      if (!supabase || !studentId) {
+        setNotifications([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("student_notification")
+        .select("*")
+        .eq("sid", studentId)
+        .order("created_at", { ascending: false });
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        console.warn("Notifications load failed:", error.message);
+        setNotifications([]);
+      } else {
+        setNotifications(data || []);
+      }
+    }
+
+    void loadNotifications();
+
+    return () => {
+      ignore = true;
+    };
+  }, [studentId]);
+
   useEffect(() => {
     function handlePointerDown(event) {
       if (!profileMenuRef.current?.contains(event.target)) {
         setProfileMenuOpen(false);
+      }
+
+      if (!notificationMenuRef.current?.contains(event.target)) {
+        setNotificationMenuOpen(false);
       }
     }
 
@@ -120,7 +196,10 @@ export default function StudentDashboard({
             level,
             status,
             img_url,
-            intro_vid_url
+            intro_vid_url,
+            review (
+              rating
+            )
           )
         `
         )
@@ -186,7 +265,20 @@ export default function StudentDashboard({
       const { data, error } = await supabase
         .from("course")
         .select(
-          "cid, name, description, teachingstyle, amount, level, status, img_url, intro_vid_url"
+          `
+          cid,
+          name,
+          description,
+          teachingstyle,
+          amount,
+          level,
+          status,
+          img_url,
+          intro_vid_url,
+          review (
+            rating
+          )
+        `
         )
         .ilike("status", "active")
         .order("cid", { ascending: false });
@@ -235,6 +327,17 @@ export default function StudentDashboard({
         course={selectedCourse}
         displayName={displayName}
         studentId={studentId}
+        initialLessonId={savedCourseLessonSelection[selectedCourse.id]}
+        onLessonSelect={(lessonId) => {
+          if (!selectedCourse?.id) {
+            return;
+          }
+
+          setSavedCourseLessonSelection((current) => ({
+            ...current,
+            [selectedCourse.id]: lessonId,
+          }));
+        }}
         onBack={() => {
           setSelectedCourse(null);
           setActiveView("dashboard");
@@ -250,6 +353,7 @@ export default function StudentDashboard({
           <div className="teacher-brand-mark">
             <GraduationCap aria-hidden="true" />
           </div>
+
           <div>
             <p className="teacher-brand-name">Syncra Learn</p>
             <p className="teacher-brand-kicker">Student Portal</p>
@@ -307,23 +411,96 @@ export default function StudentDashboard({
           </label>
 
           <div className="teacher-topbar-actions">
-            <button
-              type="button"
-              className="teacher-icon-button"
-              aria-label="Notifications"
+            <div
+              className="student-notification-menu-wrap"
+              ref={notificationMenuRef}
             >
-              <Bell aria-hidden="true" />
-            </button>
+              <button
+                type="button"
+                className="teacher-icon-button"
+                aria-label="Notifications"
+                onClick={() => {
+                  setNotificationMenuOpen((open) => !open);
+                  setProfileMenuOpen(false);
+                }}
+              >
+                <Bell aria-hidden="true" />
+                {notifications.filter((n) => !n.read).length > 0 && (
+                  <span className="notification-badge">
+                    {notifications.filter((n) => !n.read).length}
+                  </span>
+                )}
+              </button>
+
+              {notificationMenuOpen ? (
+                <div className="student-notification-menu" role="menu">
+                  {notifications.length === 0 ? (
+                    <p>No notifications yet.</p>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.nid}
+                        className={`student-notification-item ${
+                          notification.read ? "read" : "unread"
+                        }`}
+                        role="group"
+                      >
+                        <button
+                          type="button"
+                          className="student-notification-item-body"
+                          onClick={() => {
+                            if (notification.type === "course_completion") {
+                              setReviewPopup({
+                                courseId: notification.data?.course_id,
+                                courseName:
+                                  notification.title.match(/completed (.+)\./)?.[1] ||
+                                  "Course",
+                              });
+                              setNotificationMenuOpen(false);
+                            }
+
+                            supabase
+                              .from("student_notification")
+                              .update({ read: true })
+                              .eq("nid", notification.nid)
+                              .then(() => {
+                                setNotifications((prev) =>
+                                  prev.map((n) =>
+                                    n.nid === notification.nid
+                                      ? { ...n, read: true }
+                                      : n
+                                  )
+                                );
+                              });
+                          }}
+                        >
+                          <strong>{notification.title}</strong>
+                          <p>{notification.message}</p>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="student-notification-clear"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void deleteNotification(notification.nid);
+                          }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : null}
+            </div>
 
             <div className="student-streak-chip" aria-label="Learning streak">
               <Flame aria-hidden="true" />
               <span>0</span>
             </div>
 
-            <div
-              className="student-profile-menu-wrap"
-              ref={profileMenuRef}
-            >
+            <div className="student-profile-menu-wrap" ref={profileMenuRef}>
               <button
                 type="button"
                 className="student-profile-trigger"
@@ -341,6 +518,7 @@ export default function StudentDashboard({
                     <strong>{displayName}</strong>
                     <span>{effectiveStudentProfile?.email || session?.user?.email}</span>
                   </div>
+
                   <button
                     type="button"
                     role="menuitem"
@@ -380,6 +558,8 @@ export default function StudentDashboard({
               theme={theme}
               onToggleTheme={onToggleTheme}
             />
+          ) : activeView === "study-plan" ? (
+            <StudentStudyPlanPage />
           ) : activeView === "dashboard" || activeView === "courses" ? (
             <div className="student-dashboard-course-sections">
               <CourseSection
@@ -398,6 +578,12 @@ export default function StudentDashboard({
                 onOpenCourse={(course) => {
                   setSelectedCourse(course);
                   setActiveView("enrolled-course-preview");
+                }}
+                onAddReview={(course) => {
+                  setReviewPopup({
+                    courseId: course.cid,
+                    courseName: course.name,
+                  });
                 }}
               />
 
@@ -418,6 +604,69 @@ export default function StudentDashboard({
           ) : null}
         </main>
       </section>
+
+      {reviewPopup && (
+        <div className="review-popup-overlay" onClick={() => setReviewPopup(null)}>
+          <div className="review-popup" onClick={(e) => e.stopPropagation()}>
+            <h3>Review {reviewPopup.courseName}</h3>
+
+            <div className="review-rating">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setReviewRating(star)}
+                  className={star <= reviewRating ? "active" : ""}
+                >
+                  <Star aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              placeholder="Write your review..."
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+            />
+
+            <div className="review-actions">
+              <button type="button" onClick={() => setReviewPopup(null)}>
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (reviewRating === 0) {
+                    alert("Please select a rating.");
+                    return;
+                  }
+
+                  const { error } = await supabase.from("review").insert({
+                    sid: studentId,
+                    cid: reviewPopup.courseId,
+                    rating: reviewRating,
+                    comment: reviewComment,
+                    date: new Date().toISOString().split("T")[0],
+                    time: new Date().toTimeString().split(" ")[0],
+                  });
+
+                  if (error) {
+                    alert("Failed to submit review: " + error.message);
+                  } else {
+                    alert("Review submitted successfully!");
+                    setReviewPopup(null);
+                    setReviewRating(0);
+                    setReviewComment("");
+                  }
+                }}
+              >
+                Submit Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -431,6 +680,7 @@ function CourseSection({
   loadingText,
   message,
   onOpenCourse,
+  onAddReview,
 }) {
   return (
     <section className="student-suggestions-section">
@@ -455,6 +705,7 @@ function CourseSection({
               key={course.id}
               course={course}
               onOpenCourse={onOpenCourse}
+              onAddReview={onAddReview}
             />
           ))}
         </div>
@@ -463,7 +714,7 @@ function CourseSection({
   );
 }
 
-function CourseCard({ course, onOpenCourse }) {
+function CourseCard({ course, onOpenCourse, onAddReview }) {
   return (
     <article
       className="student-course-card"
@@ -502,26 +753,49 @@ function CourseCard({ course, onOpenCourse }) {
               <Banknote aria-hidden="true" />
               {formatCourseAmount(course.amount)}
             </span>
+
+            <span className="student-course-rating">
+              <Star aria-hidden="true" />
+              {course.ratingCount > 0
+                ? `${course.averageRating.toFixed(1)} (${course.ratingCount})`
+                : "No ratings"}
+            </span>
           </div>
         ) : null}
 
         {course.enrolledAt ? (
-          <div className="student-course-progress-block">
-            <div className="student-course-progress-label">
-              <span>Course Completion</span>
-              <strong>{Number(course.progressPercent || 0)}%</strong>
+          <>
+            <div className="student-course-progress-block">
+              <div className="student-course-progress-label">
+                <span>Course Completion</span>
+                <strong>{Number(course.progressPercent || 0)}%</strong>
+              </div>
+
+              <div className="student-course-progress">
+                <span
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.max(0, Number(course.progressPercent || 0))
+                    )}%`,
+                  }}
+                />
+              </div>
             </div>
-            <div className="student-course-progress">
-              <span
-                style={{
-                  width: `${Math.min(
-                    100,
-                    Math.max(0, Number(course.progressPercent || 0))
-                  )}%`,
+
+            {onAddReview && Number(course.progressPercent || 0) === 100 ? (
+              <button
+                type="button"
+                className="student-course-review-button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onAddReview(course);
                 }}
-              />
-            </div>
-          </div>
+              >
+                Add Review
+              </button>
+            ) : null}
+          </>
         ) : null}
       </div>
     </article>
@@ -529,6 +803,15 @@ function CourseCard({ course, onOpenCourse }) {
 }
 
 function mapSuggestedCourse(row, enrolledAt = null, progress = {}) {
+  const reviews = row?.review || [];
+  const ratingCount = reviews.length;
+
+  const averageRating =
+    ratingCount > 0
+      ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) /
+        ratingCount
+      : 0;
+
   return {
     id: row?.cid,
     cid: row?.cid,
@@ -544,6 +827,8 @@ function mapSuggestedCourse(row, enrolledAt = null, progress = {}) {
     enrolledAt,
     progressPercent: progress.progressPercent ?? 0,
     completed: progress.completed || false,
+    averageRating,
+    ratingCount,
   };
 }
 

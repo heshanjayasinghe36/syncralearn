@@ -7,6 +7,7 @@ import {
   FileText,
   Milestone,
   Sparkles,
+  Star,
   X,
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
@@ -26,6 +27,9 @@ export default function StudentCoursePreviewPage({
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [message, setMessage] = useState("");
   const [enrollmentMessage, setEnrollmentMessage] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [reviewsMessage, setReviewsMessage] = useState("");
   const courseId = course?.cid || course?.id || null;
   const previewCourse = courseDetails || course || {};
   const courseDescription = previewCourse.description?.trim() || "";
@@ -79,6 +83,49 @@ export default function StudentCoursePreviewPage({
       ignore = true;
     };
   }, [course, courseId]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadReviews() {
+      if (!courseId || !supabase) {
+        setReviews([]);
+        setReviewsMessage(
+          !supabase ? supabaseConfigError || "Supabase is not configured." : ""
+        );
+        return;
+      }
+
+      setLoadingReviews(true);
+      setReviewsMessage("");
+
+      const { data, error } = await supabase
+        .from("review")
+        .select("rid, rating, comment, date, time")
+        .eq("cid", courseId)
+        .order("date", { ascending: false })
+        .order("time", { ascending: false });
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        setReviews([]);
+        setReviewsMessage(`Reviews load failed: ${error.message}`);
+      } else {
+        setReviews(data || []);
+      }
+
+      setLoadingReviews(false);
+    }
+
+    void loadReviews();
+
+    return () => {
+      ignore = true;
+    };
+  }, [courseId]);
 
   useEffect(() => {
     let ignore = false;
@@ -335,7 +382,7 @@ export default function StudentCoursePreviewPage({
             ) : null}
           </article>
 
-          <article className="student-preview-stats-card">
+          {/* <article className="student-preview-stats-card">
             <h3>Quick Stats</h3>
             <p>
               <Clock3 aria-hidden="true" />
@@ -349,7 +396,33 @@ export default function StudentCoursePreviewPage({
               <Sparkles aria-hidden="true" />
               Matched to your learning profile
             </p>
-          </article>
+          </article> */}
+
+          {reviews.length > 0 ? (
+            <article className="student-preview-reviews-card">
+              <h3>Student Reviews</h3>
+              {reviews.map((review, index) => (
+                <div className="student-preview-review-item" key={review.rid || `${review.date}-${index}`}>
+                  <div className="student-preview-review-rating">
+                    {Array.from({ length: 5 }).map((_, starIndex) => (
+                      <Star
+                        key={starIndex}
+                        className={
+                          starIndex < Number(review.rating)
+                            ? "active"
+                            : ""
+                        }
+                        aria-hidden="true"
+                      />
+                    ))}
+                    <span>{Number(review.rating)}/5</span>
+                  </div>
+                  <p>{review.comment}</p>
+                  <small>{review.date || review.time}</small>
+                </div>
+              ))}
+            </article>
+          ) : null}
         </aside>
       </div>
 
