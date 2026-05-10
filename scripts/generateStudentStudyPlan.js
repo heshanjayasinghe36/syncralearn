@@ -70,7 +70,7 @@ async function generateStudentStudyPlan(sid) {
 
   try {
     planJson = JSON.parse(text);
-  } catch (error) {
+  } catch {
     console.error("Raw Gemini response:", text);
     throw new Error("Gemini returned invalid JSON.");
   }

@@ -321,6 +321,7 @@ export default function App() {
     !isStudentOnboarding &&
     !isTeacherOnboarding &&
     userRole !== "student" &&
+    userRole !== "lecturer" &&
     (adminSession || authLoading || profileLoading || session);
 
   return (
@@ -369,6 +370,8 @@ export default function App() {
             session={session}
             onSignOut={handleSignOut}
             teacherProfile={teacherProfile}
+            theme={theme}
+            onToggleTheme={toggleTheme}
           />
         ) : (
           <StudentDashboard

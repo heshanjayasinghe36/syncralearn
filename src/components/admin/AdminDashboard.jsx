@@ -1,10 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  GraduationCap,
+  ShieldCheck,
+  UserRound,
+  Users,
+} from "lucide-react";
+import AdminVerificationPage from "./AdminVerificationPage";
 import { supabase } from "../../lib/supabase";
 
 const VERIFY_DOCS_BUCKET = "verify_docs_t";
 
+const adminSidebarItems = [
+  {
+    id: "users",
+    label: "Users",
+    icon: <Users aria-hidden="true" />,
+  },
+  {
+    id: "verification",
+    label: "Verification",
+    icon: <ShieldCheck aria-hidden="true" />,
+  },
+];
+
 export default function AdminDashboard({ adminSession, onSignOut }) {
+  const [activeView, setActiveView] = useState("users");
   const [teachers, setTeachers] = useState([]);
+  const [students, setStudents] = useState([]);
   const [docUrls, setDocUrls] = useState({});
   const [loading, setLoading] = useState(true);
   const [verifyingId, setVerifyingId] = useState(null);
@@ -22,7 +44,7 @@ export default function AdminDashboard({ adminSession, onSignOut }) {
   useEffect(() => {
     let ignore = false;
 
-    async function loadTeachers() {
+    async function loadAdminData() {
       setLoading(true);
       setMessage("");
       setAccessNotice("");
@@ -31,25 +53,34 @@ export default function AdminDashboard({ adminSession, onSignOut }) {
         data: { session },
       } = await supabase.auth.getSession();
 
-      const { data, error } = await supabase
-        .from("teacher")
-        .select("*")
-        .order("tid", { ascending: false });
+      const [{ data: teacherData, error: teacherError }, { data: studentData, error: studentError }] =
+        await Promise.all([
+          supabase.from("teacher").select("*").order("tid", { ascending: false }),
+          supabase.from("student").select("*").order("sid", { ascending: false }),
+        ]);
 
       if (ignore) {
         return;
       }
 
-      if (error) {
-        setMessage(`Failed to load teacher requests: ${error.message}`);
+      if (teacherError || studentError) {
+        setMessage(
+          `Failed to load admin data: ${
+            teacherError?.message || studentError?.message || "Unknown error"
+          }`
+        );
         setTeachers([]);
+        setStudents([]);
         setDocUrls({});
         setLoading(false);
         return;
       }
 
-      const teacherRows = data || [];
+      const teacherRows = teacherData || [];
+      const studentRows = studentData || [];
+
       setTeachers(teacherRows);
+      setStudents(studentRows);
 
       if (teacherRows.length === 0 && !session?.user) {
         setAccessNotice(
@@ -69,13 +100,11 @@ export default function AdminDashboard({ adminSession, onSignOut }) {
         return [teacher.tid, publicData.publicUrl || ""];
       });
 
-      if (!ignore) {
-        setDocUrls(Object.fromEntries(publicUrlEntries));
-        setLoading(false);
-      }
+      setDocUrls(Object.fromEntries(publicUrlEntries));
+      setLoading(false);
     }
 
-    void loadTeachers();
+    void loadAdminData();
 
     return () => {
       ignore = true;
@@ -86,11 +115,13 @@ export default function AdminDashboard({ adminSession, onSignOut }) {
     setVerifyingId(teacher.tid);
     setMessage("");
 
+    const verifiedAt = new Date().toISOString();
+
     const { error } = await supabase
       .from("teacher")
       .update({
         verification_status: "verified",
-        verified_at: new Date().toISOString(),
+        verified_at: verifiedAt,
       })
       .eq("tid", teacher.tid);
 
@@ -106,7 +137,7 @@ export default function AdminDashboard({ adminSession, onSignOut }) {
           ? {
               ...currentTeacher,
               verification_status: "verified",
-              verified_at: new Date().toISOString(),
+              verified_at: verifiedAt,
             }
           : currentTeacher
       )
@@ -115,151 +146,76 @@ export default function AdminDashboard({ adminSession, onSignOut }) {
   }
 
   return (
-    <div className="exp-shell">
-      <div className="exp-orb" />
-      <div className="exp-orb-alt" />
-      <div className="exp-orb-soft" />
-      <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
-        <section className="exp-frame p-5 sm:p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="exp-sticker">
-                Admin workspace
-              </p>
-              <h1 className="exp-title mt-5 text-3xl font-semibold sm:text-4xl">
-                Pending teacher verification.
-                <span className="exp-highlight block pt-2">
-                  Review with a softer command center.
-                </span>
-              </h1>
-              <p className="exp-muted mt-3 max-w-2xl text-sm leading-relaxed">
-                Review lecturer profiles, open their proof links, and mark them
-                as verified once approved.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="exp-card p-3 text-sm">
-                <p className="text-slate-500 dark:text-white/50">
-                  Signed in as
-                </p>
-                <p className="font-medium text-slate-900 dark:text-white">
-                  {adminSession.username}
-                </p>
-              </div>
-              <div className="exp-card p-3 text-sm">
-                <p className="text-slate-500 dark:text-white/50">Pending</p>
-                <p className="font-medium text-slate-900 dark:text-white">
-                  {pendingTeachers.length}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onSignOut}
-                className="exp-secondary-button px-4 py-2.5 text-sm"
-              >
-                Sign out
-              </button>
-            </div>
+    <div className="teacher-dashboard-shell admin-dashboard-shell">
+      <aside className="teacher-sidebar admin-sidebar">
+        <div className="teacher-sidebar-brand">
+          <div className="teacher-brand-mark">
+            <GraduationCap aria-hidden="true" />
           </div>
-        </section>
 
-        {message ? (
-          <p className="exp-card mt-5 px-4 py-3 text-sm text-amber-700 dark:text-amber-100">
-            {message}
-          </p>
-        ) : null}
-
-        {accessNotice ? (
-          <p className="exp-card mt-5 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">
-            {accessNotice}
-          </p>
-        ) : null}
-
-        {loading ? (
-          <section className="exp-frame mt-6 p-5">
-            <p className="text-sm text-slate-600 dark:text-white/65">
-              Loading teacher requests...
-            </p>
-          </section>
-        ) : pendingTeachers.length === 0 ? (
-          <section className="exp-frame mt-6 p-5">
-            <h2 className="text-xl font-semibold">
-              {accessNotice ? "No accessible pending teachers" : "No pending teachers"}
-            </h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-white/65">
-              {accessNotice
-                ? "Pending rows may exist in Supabase, but this admin client cannot read them under the current RLS setup."
-                : "Every lecturer request is already verified or there are no teacher submissions yet."}
-            </p>
-          </section>
-        ) : (
-          <div className="mt-6 grid gap-5">
-            {pendingTeachers.map((teacher) => (
-              <article
-                key={teacher.tid}
-                className="exp-frame p-5"
-              >
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-white/40">
-                        Teacher
-                      </p>
-                      <h2 className="mt-2 text-2xl font-semibold">
-                        {teacher.full_name || "Unnamed lecturer"}
-                      </h2>
-                    </div>
-                    <p className="text-sm text-slate-600 dark:text-white/65">
-                      {teacher.email || "No email"}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <StatusPill>
-                        {formatVerificationStatus(teacher.verification_status)}
-                      </StatusPill>
-                      {teacher.tid ? <StatusPill>TID {teacher.tid}</StatusPill> : null}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleVerifyTeacher(teacher)}
-                    disabled={verifyingId === teacher.tid}
-                    className="exp-primary-button px-4 py-2.5 text-sm"
-                  >
-                    {verifyingId === teacher.tid ? "Verifying..." : "Verify teacher"}
-                  </button>
-                </div>
-
-                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <Detail label="Qualification" value={teacher.academic_qualification} />
-                  <Detail label="Field of study" value={teacher.field_of_study} />
-                  <Detail label="Institution" value={teacher.institution_name} />
-                  <Detail label="Staff / student ID" value={teacher.staff_or_student_id} />
-                  <Detail label="Verified at" value={formatVerifiedAt(teacher.verified_at)} />
-                </div>
-
-                <div className="mt-5 grid gap-3 md:grid-cols-3">
-                  <LinkCard label="LinkedIn" href={teacher.linkedin_url} />
-                  <LinkCard label="GitHub" href={teacher.github_url} />
-                  <DocumentCard
-                    label="Verification document"
-                    url={docUrls[teacher.tid]}
-                    path={teacher.verify_doc}
-                    onPreview={() =>
-                      setPreviewDocument({
-                        name: `${teacher.full_name || "Teacher"} verification document`,
-                        path: teacher.verify_doc,
-                        url: docUrls[teacher.tid],
-                      })
-                    }
-                  />
-                </div>
-              </article>
-            ))}
+          <div>
+            <p className="teacher-brand-name">Syncra Learn</p>
+            <p className="teacher-brand-kicker">Admin Portal</p>
           </div>
-        )}
-      </div>
+        </div>
+
+        <nav className="teacher-sidebar-nav" aria-label="Admin dashboard">
+          {adminSidebarItems.map(({ id, label, icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveView(id)}
+              className={`teacher-sidebar-link ${activeView === id ? "is-active" : ""}`}
+            >
+              {icon}
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="admin-sidebar-status">
+          <span>Admin Session</span>
+          <strong>{adminSession?.username || "Admin"}</strong>
+        </div>
+      </aside>
+
+      <section className="teacher-dashboard-main admin-dashboard-main">
+        <main className="teacher-dashboard-empty admin-dashboard-content">
+          {message ? (
+            <p className="exp-card admin-dashboard-alert admin-dashboard-alert-warning">
+              {message}
+            </p>
+          ) : null}
+
+          {accessNotice ? (
+            <p className="exp-card admin-dashboard-alert admin-dashboard-alert-danger">
+              {accessNotice}
+            </p>
+          ) : null}
+
+          {activeView === "users" ? (
+            <AdminUsersView
+              adminSession={adminSession}
+              students={students}
+              teachers={teachers}
+              loading={loading}
+              onSignOut={onSignOut}
+            />
+          ) : (
+            <AdminVerificationPage
+              adminSession={adminSession}
+              pendingTeachers={pendingTeachers}
+              loading={loading}
+              verifyingId={verifyingId}
+              docUrls={docUrls}
+              onVerifyTeacher={handleVerifyTeacher}
+              onPreviewDocument={setPreviewDocument}
+              onSignOut={onSignOut}
+              accessNotice={accessNotice}
+            />
+          )}
+        </main>
+      </section>
 
       {previewDocument ? (
         <DocumentPreviewModal
@@ -271,78 +227,154 @@ export default function AdminDashboard({ adminSession, onSignOut }) {
   );
 }
 
-function Detail({ label, value }) {
+function AdminUsersView({ adminSession, students, teachers, loading, onSignOut }) {
+  const totalUsers = students.length + teachers.length;
+
   return (
-    <div className="exp-card p-3">
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-white/40">
-        {label}
-      </p>
-      <p className="mt-2 font-medium text-slate-900 dark:text-white">
-        {value || "Not provided"}
-      </p>
-    </div>
-  );
-}
+    <section className="admin-page">
+      <div className="admin-page-header">
+        <div>
+          <p className="admin-page-kicker">Admin Portal</p>
+          <h1>Users</h1>
+          <p>Review student and teacher accounts from one place.</p>
+        </div>
 
-function LinkCard({ label, href, fallback = "Not provided" }) {
-  return href ? (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="exp-secondary-button px-4 py-2.5 text-sm"
-    >
-      Open {label}
-    </a>
-  ) : (
-    <div className="exp-card px-4 py-3 text-sm text-slate-500 dark:text-white/55">
-      {label}: {fallback}
-    </div>
-  );
-}
-
-function DocumentCard({ label, url, path, onPreview }) {
-  if (!url || !path) {
-    return (
-      <div className="exp-card px-4 py-3 text-sm text-slate-500 dark:text-white/55">
-        {label}: Not uploaded
+        <div className="admin-page-actions">
+          <div className="admin-session-card">
+            <p>Signed in as admin</p>
+            <strong>{adminSession?.username || "Admin"}</strong>
+          </div>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="exp-secondary-button admin-signout-button"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
-    );
+
+      <div className="admin-metric-grid">
+        <MetricCard icon={<Users aria-hidden="true" />} label="Total users" value={totalUsers} />
+        <MetricCard icon={<UserRound aria-hidden="true" />} label="Students" value={students.length} />
+        <MetricCard
+          icon={<GraduationCap aria-hidden="true" />}
+          label="Teachers"
+          value={teachers.length}
+        />
+      </div>
+
+      {loading ? (
+        <section className="exp-frame admin-loading-card">
+          <p>Loading users...</p>
+        </section>
+      ) : (
+        <div className="admin-user-layout">
+          <section className="exp-frame admin-user-section">
+            <div className="admin-section-heading">
+              <h2>Students</h2>
+              <span>{students.length}</span>
+            </div>
+
+            <div className="admin-user-grid">
+              {students.length === 0 ? (
+                <p className="admin-empty-state">No student accounts found.</p>
+              ) : (
+                students.map((student) => (
+                  <UserCard
+                    key={`student-${student.sid}`}
+                    icon={<UserRound aria-hidden="true" />}
+                    name={student.full_name || "Unnamed student"}
+                    email={student.email || "No email"}
+                    badge={`SID ${student.sid}`}
+                    metaLeft={student.mls || "Learning style not set"}
+                    metaRight={student.vark_completed ? "Profile complete" : "VARK pending"}
+                  />
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="exp-frame admin-user-section">
+            <div className="admin-section-heading">
+              <h2>Teachers</h2>
+              <span>{teachers.length}</span>
+            </div>
+
+            <div className="admin-user-grid">
+              {teachers.length === 0 ? (
+                <p className="admin-empty-state">No teacher accounts found.</p>
+              ) : (
+                teachers.map((teacher) => (
+                  <UserCard
+                    key={`teacher-${teacher.tid}`}
+                    icon={<GraduationCap aria-hidden="true" />}
+                    name={teacher.full_name || "Unnamed teacher"}
+                    email={teacher.email || "No email"}
+                    badge={`TID ${teacher.tid}`}
+                    metaLeft={teacher.field_of_study || "Field not provided"}
+                    metaRight={formatVerificationStatus(teacher.verification_status)}
+                  />
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MetricCard({ icon, label, value }) {
+  return (
+    <div className="exp-card admin-metric-card">
+      <span>{icon}</span>
+      <small>{label}</small>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function UserCard({ icon, name, email, badge, metaLeft, metaRight }) {
+  return (
+    <article className="exp-card admin-user-card">
+      <div className="admin-user-card-heading">
+        <span>{icon}</span>
+        <div>
+          <h3>{name}</h3>
+          <p>{email}</p>
+        </div>
+      </div>
+
+      <div className="admin-badge-row">
+        <StatusPill>{badge}</StatusPill>
+      </div>
+
+      <div className="admin-user-card-meta">
+        <small>{metaLeft}</small>
+        <strong>{metaRight}</strong>
+      </div>
+    </article>
+  );
+}
+
+function StatusPill({ children }) {
+  return (
+    <span className="exp-sticker px-3 py-1 text-xs text-slate-600 dark:text-white/65">
+      {children}
+    </span>
+  );
+}
+
+function formatVerificationStatus(value) {
+  if (!value) {
+    return "Pending";
   }
 
-  const documentType = getDocumentType(path);
-
-  return (
-    <div className="exp-card px-4 py-3">
-      <p className="text-sm font-medium text-slate-900 dark:text-white">
-        {label}
-      </p>
-      <p className="mt-1 text-xs text-slate-500 dark:text-white/55">
-        {documentType === "image"
-          ? "Opens as an image preview."
-          : documentType === "pdf"
-            ? "Opens as an embedded PDF file."
-            : "Opens as a file preview with external open/download links."}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onPreview}
-          className="exp-primary-button px-3 py-2 text-sm"
-        >
-          Preview
-        </button>
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="exp-secondary-button px-3 py-2 text-sm"
-        >
-          Open in new tab
-        </a>
-      </div>
-    </div>
-  );
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function DocumentPreviewModal({ document, onClose }) {
@@ -414,39 +446,6 @@ function DocumentPreviewModal({ document, onClose }) {
       </div>
     </div>
   );
-}
-
-function StatusPill({ children }) {
-  return (
-    <span className="exp-sticker px-3 py-1 text-xs text-slate-600 dark:text-white/65">
-      {children}
-    </span>
-  );
-}
-
-function formatVerificationStatus(value) {
-  if (!value) {
-    return "Pending";
-  }
-
-  return value
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function formatVerifiedAt(value) {
-  if (!value) {
-    return "Not verified yet";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
 }
 
 function getDocumentType(path) {

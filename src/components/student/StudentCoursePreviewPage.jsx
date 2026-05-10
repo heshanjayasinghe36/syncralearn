@@ -398,7 +398,17 @@ export default function StudentCoursePreviewPage({
             </p>
           </article> */}
 
-          {reviews.length > 0 ? (
+          {loadingReviews ? (
+            <article className="student-preview-reviews-card">
+              <h3>Student Reviews</h3>
+              <p>Loading reviews...</p>
+            </article>
+          ) : reviewsMessage ? (
+            <article className="student-preview-reviews-card">
+              <h3>Student Reviews</h3>
+              <p>{reviewsMessage}</p>
+            </article>
+          ) : reviews.length > 0 ? (
             <article className="student-preview-reviews-card">
               <h3>Student Reviews</h3>
               {reviews.map((review, index) => (

@@ -3,6 +3,7 @@ import {
   Banknote,
   Bell,
   BookOpen,
+  Clock,
   Flame,
   GraduationCap,
   LayoutDashboard,
@@ -15,6 +16,7 @@ import {
 import { supabase, supabaseConfigError } from "../../lib/supabase";
 import { getVarkStyleKeys, getVarkStyleLabel } from "../../lib/vark";
 import StudentCourseLearningPage from "./StudentCourseLearningPage";
+import StudentCoursesPage from "./StudentCoursesPage";
 import StudentCoursePreviewPage from "./StudentCoursePreviewPage";
 import StudentSettingsPage from "./StudentSettingsPage";
 import StudentStudyPlanPage from "./StudentStudyPlanPage";
@@ -50,20 +52,28 @@ export default function StudentDashboard({
   const [suggestedCourses, setSuggestedCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courseReturnView, setCourseReturnView] = useState("dashboard");
   const [savedCourseLessonSelection, setSavedCourseLessonSelection] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [loadingEnrolledCourses, setLoadingEnrolledCourses] = useState(false);
+  const [searchCatalogCourses, setSearchCatalogCourses] = useState([]);
+  const [loadingSearchCatalog, setLoadingSearchCatalog] = useState(false);
   const [suggestionMessage, setSuggestionMessage] = useState("");
   const [enrolledCoursesMessage, setEnrolledCoursesMessage] = useState("");
+  const [studyPlanCard, setStudyPlanCard] = useState(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [reviewPopup, setReviewPopup] = useState(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const profileMenuRef = useRef(null);
   const notificationMenuRef = useRef(null);
+  const searchRef = useRef(null);
+  const streakSyncedStudentIdRef = useRef(null);
 
   const effectiveStudentProfile = localStudentProfile || studentProfile;
 
@@ -77,6 +87,7 @@ export default function StudentDashboard({
   const initials = getInitials(displayName);
   const learningStyle = effectiveStudentProfile?.mls || "";
   const studentId = effectiveStudentProfile?.sid || null;
+  const currentStreak = Number(effectiveStudentProfile?.current_streak || 0);
 
   function handleStudentProfileUpdate(nextProfile) {
     setLocalStudentProfile(nextProfile);
@@ -86,6 +97,51 @@ export default function StudentDashboard({
   useEffect(() => {
     setLocalStudentProfile(studentProfile);
   }, [studentProfile]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function syncStudentStreak() {
+      if (!supabase || !studentId || streakSyncedStudentIdRef.current === studentId) {
+        return;
+      }
+
+      streakSyncedStudentIdRef.current = studentId;
+
+      const streakUpdate = getNextStudentStreak(effectiveStudentProfile);
+
+      const { data, error } = await supabase
+        .from("student")
+        .update({
+          current_streak: streakUpdate.currentStreak,
+          longest_streak: streakUpdate.longestStreak,
+          last_active_date: streakUpdate.today,
+          last_active_at: new Date().toISOString(),
+        })
+        .eq("sid", studentId)
+        .select("*")
+        .maybeSingle();
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        console.warn("Student streak update failed:", error.message);
+        return;
+      }
+
+      if (data) {
+        handleStudentProfileUpdate(data);
+      }
+    }
+
+    void syncStudentStreak();
+
+    return () => {
+      ignore = true;
+    };
+  }, [effectiveStudentProfile, studentId]);
 
   async function deleteNotification(nid) {
     if (!supabase || !nid) {
@@ -150,6 +206,10 @@ export default function StudentDashboard({
       if (!notificationMenuRef.current?.contains(event.target)) {
         setNotificationMenuOpen(false);
       }
+
+      if (!searchRef.current?.contains(event.target)) {
+        setSearchOpen(false);
+      }
     }
 
     document.addEventListener("mousedown", handlePointerDown);
@@ -158,6 +218,52 @@ export default function StudentDashboard({
       document.removeEventListener("mousedown", handlePointerDown);
     };
   }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadStudyPlanCard() {
+      if (!supabase || !studentId) {
+        setStudyPlanCard(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("student_study_plan")
+        .select("plan_json, generated_at")
+        .eq("sid", studentId)
+        .order("generated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        console.warn("Study plan load failed:", error.message);
+        setStudyPlanCard(null);
+        return;
+      }
+
+      if (!data?.plan_json) {
+        setStudyPlanCard(null);
+        return;
+      }
+
+      setStudyPlanCard({
+        weeklyGoal: data.plan_json.weeklyGoal || "",
+        totalStudyHours: Number(data.plan_json.totalStudyHours || 0),
+        nextSession: getNextStudyTask(data.plan_json),
+      });
+    }
+
+    void loadStudyPlanCard();
+
+    return () => {
+      ignore = true;
+    };
+  }, [studentId]);
 
   useEffect(() => {
     let ignore = false;
@@ -321,6 +427,96 @@ export default function StudentDashboard({
     };
   }, [enrolledCourses, learningStyle]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadSearchCatalog() {
+      if (!supabase) {
+        setSearchCatalogCourses([]);
+        return;
+      }
+
+      setLoadingSearchCatalog(true);
+
+      const { data, error } = await supabase
+        .from("course")
+        .select(
+          `
+          cid,
+          name,
+          description,
+          teachingstyle,
+          amount,
+          level,
+          status,
+          img_url,
+          intro_vid_url,
+          tid,
+          teacher (
+            full_name
+          ),
+          review (
+            rating
+          )
+        `
+        )
+        .ilike("status", "active")
+        .order("cid", { ascending: false });
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        console.warn("Search catalog load failed:", error.message);
+        setSearchCatalogCourses([]);
+      } else {
+        const enrolledCourseMap = new Map(
+          enrolledCourses.map((course) => [course.id, course])
+        );
+
+        setSearchCatalogCourses(
+          (data || [])
+            .map((row) => {
+              const enrolledCourse = enrolledCourseMap.get(row.cid);
+
+              return mapSuggestedCourse(
+                row,
+                enrolledCourse?.enrolledAt ?? null,
+                {
+                  progressPercent: enrolledCourse?.progressPercent ?? 0,
+                  completed: enrolledCourse?.completed ?? false,
+                }
+              );
+            })
+            .filter((course) => course.id)
+        );
+      }
+
+      setLoadingSearchCatalog(false);
+    }
+
+    void loadSearchCatalog();
+
+    return () => {
+      ignore = true;
+    };
+  }, [enrolledCourses]);
+
+  const searchResults = getStudentSearchResults(
+    searchCatalogCourses,
+    searchQuery,
+    learningStyle
+  );
+
+  function openCourseFromSearch(course) {
+    setCourseReturnView(activeView);
+    setSelectedCourse(course);
+    setSearchOpen(false);
+    setSearchQuery("");
+    setActiveView(course.isEnrolled ? "enrolled-course-preview" : "course-preview");
+  }
+
   if (activeView === "enrolled-course-preview" && selectedCourse) {
     return (
       <StudentCourseLearningPage
@@ -340,7 +536,7 @@ export default function StudentDashboard({
         }}
         onBack={() => {
           setSelectedCourse(null);
-          setActiveView("dashboard");
+          setActiveView(courseReturnView);
         }}
       />
     );
@@ -405,10 +601,69 @@ export default function StudentDashboard({
         <header className="teacher-topbar">
           <h1>Welcome, {displayName}</h1>
 
-          <label className="teacher-search">
+          <div className="teacher-search student-course-search" ref={searchRef}>
             <Search aria-hidden="true" />
-            <input type="search" placeholder="Search courses..." />
-          </label>
+            <input
+              type="search"
+              placeholder="Search courses or teachers..."
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setSearchOpen(true);
+              }}
+              onFocus={() => setSearchOpen(true)}
+            />
+
+            {searchOpen ? (
+              <div className="student-search-popup" role="listbox">
+                {loadingSearchCatalog ? (
+                  <p className="student-search-state">Loading courses...</p>
+                ) : searchCatalogCourses.length === 0 ? (
+                  <p className="student-search-state">No active courses available.</p>
+                ) : searchResults.length === 0 ? (
+                  <p className="student-search-state">
+                    No courses match that course or teacher name.
+                  </p>
+                ) : (
+                  <div className="student-search-results">
+                    {searchResults.map((course) => (
+                      <button
+                        key={`search-${course.id}`}
+                        type="button"
+                        className="student-search-result"
+                        onClick={() => openCourseFromSearch(course)}
+                      >
+                        <div className="student-search-result-visual">
+                          {course.imgUrl ? (
+                            <img src={course.imgUrl} alt="" />
+                          ) : (
+                            <BookOpen aria-hidden="true" />
+                          )}
+                        </div>
+
+                        <div className="student-search-result-body">
+                          <div className="student-search-result-topline">
+                            <span>{course.levelLabel}</span>
+                            {course.isEnrolled ? (
+                              <strong>Enrolled</strong>
+                            ) : hasMatchingLearningStyle(
+                                getVarkStyleKeys(learningStyle),
+                                course.teachingstyle
+                              ) ? (
+                              <strong>Style match</strong>
+                            ) : null}
+                          </div>
+
+                          <h3>{course.name}</h3>
+                          <p>{course.teacherName || "Unknown teacher"}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
 
           <div className="teacher-topbar-actions">
             <div
@@ -497,7 +752,7 @@ export default function StudentDashboard({
 
             <div className="student-streak-chip" aria-label="Learning streak">
               <Flame aria-hidden="true" />
-              <span>0</span>
+              <span>{currentStreak}</span>
             </div>
 
             <div className="student-profile-menu-wrap" ref={profileMenuRef}>
@@ -547,7 +802,29 @@ export default function StudentDashboard({
               studentProfile={effectiveStudentProfile}
               onBack={() => {
                 setSelectedCourse(null);
-                setActiveView("courses");
+                setActiveView(courseReturnView);
+              }}
+            />
+          ) : activeView === "courses" ? (
+            <StudentCoursesPage
+              courses={enrolledCourses}
+              loading={loadingEnrolledCourses}
+              message={
+                enrolledCoursesMessage ||
+                (enrolledCourses.length === 0
+                  ? "You have not enrolled in any courses yet."
+                  : "")
+              }
+              onOpenCourse={(course) => {
+                setCourseReturnView("courses");
+                setSelectedCourse(course);
+                setActiveView("enrolled-course-preview");
+              }}
+              onAddReview={(course) => {
+                setReviewPopup({
+                  courseId: course.cid,
+                  courseName: course.name,
+                });
               }}
             />
           ) : activeView === "settings" ? (
@@ -560,11 +837,18 @@ export default function StudentDashboard({
             />
           ) : activeView === "study-plan" ? (
             <StudentStudyPlanPage />
-          ) : activeView === "dashboard" || activeView === "courses" ? (
-            <div className="student-dashboard-course-sections">
+          ) : activeView === "dashboard" ? (
+            <div
+              className={`student-dashboard-overview ${
+                studyPlanCard ? "has-next-task" : "no-next-task"
+              }`}
+            >
+              <DailyStreakCard currentStreak={currentStreak} />
+
               <CourseSection
+                className="student-continue-section"
                 badge="Your learning"
-                title="Enrolled Courses"
+                title="Continue Learning"
                 icon={<BookOpen aria-hidden="true" />}
                 courses={enrolledCourses}
                 loading={loadingEnrolledCourses}
@@ -576,6 +860,7 @@ export default function StudentDashboard({
                     : "")
                 }
                 onOpenCourse={(course) => {
+                  setCourseReturnView("dashboard");
                   setSelectedCourse(course);
                   setActiveView("enrolled-course-preview");
                 }}
@@ -587,7 +872,15 @@ export default function StudentDashboard({
                 }}
               />
 
+              {studyPlanCard ? (
+                <NextStudyTaskCard
+                  studyPlanCard={studyPlanCard}
+                  onOpenPlan={() => setActiveView("study-plan")}
+                />
+              ) : null}
+
               <CourseSection
+                className="student-suggested-section"
                 badge="Matched for your style"
                 title="Suggested Courses"
                 icon={<Sparkles aria-hidden="true" />}
@@ -596,6 +889,7 @@ export default function StudentDashboard({
                 loadingText="Loading suggested courses..."
                 message={suggestionMessage}
                 onOpenCourse={(course) => {
+                  setCourseReturnView("dashboard");
                   setSelectedCourse(course);
                   setActiveView("course-preview");
                 }}
@@ -671,7 +965,107 @@ export default function StudentDashboard({
   );
 }
 
+function DailyStreakCard({ currentStreak }) {
+  const monthStreak = getMonthStreakDays(currentStreak);
+
+  return (
+    <section className="student-daily-streak-card" aria-label="Daily streak">
+      <div className="student-daily-streak-heading">
+        <span>
+          <Flame aria-hidden="true" />
+        </span>
+        <div>
+          <p>Daily Streak</p>
+          <strong>{currentStreak} day streak</strong>
+        </div>
+      </div>
+
+      <div className="student-daily-streak-month">
+        <span>{monthStreak.monthLabel}</span>
+        <small>Current month</small>
+      </div>
+
+      <div className="student-daily-streak-weekdays" aria-hidden="true">
+        {monthStreak.weekdays.map((day, index) => (
+          <span key={`${day}-${index}`}>{day}</span>
+        ))}
+      </div>
+
+      <div
+        className="student-daily-streak-calendar"
+        aria-label={`Streak for ${monthStreak.monthLabel}`}
+      >
+        {monthStreak.days.map((day) => (
+          <div
+            key={day.key}
+            className={`student-streak-day ${
+              day.isPlaceholder ? "is-placeholder" : ""
+            } ${day.active ? "is-active" : ""} ${day.isToday ? "is-today" : ""}`}
+          >
+            <span>{day.isPlaceholder ? "" : day.label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function NextStudyTaskCard({ studyPlanCard, onOpenPlan }) {
+  const nextSession = studyPlanCard?.nextSession;
+
+  return (
+    <section className="student-next-task-card" aria-label="Next study task">
+      <div className="student-next-task-heading">
+        <span>
+          <Clock aria-hidden="true" />
+        </span>
+        <div>
+          <p>What to do next</p>
+          <strong>
+            {nextSession ? nextSession.relativeLabel : "Study plan ready"}
+          </strong>
+        </div>
+      </div>
+
+      {nextSession ? (
+        <>
+          <div className="student-next-task-meta">
+            <span>{nextSession.dayLabel}</span>
+            <span>{nextSession.timeLabel}</span>
+          </div>
+
+          <h3>{nextSession.taskTitle}</h3>
+          <p>
+            {nextSession.courseName} • {formatActivityType(nextSession.activityType)}
+          </p>
+
+          {nextSession.taskDescription ? (
+            <small>{nextSession.taskDescription}</small>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <h3>No sessions left this week</h3>
+          <p>{studyPlanCard?.weeklyGoal || "Your next study cycle is ready to review."}</p>
+          {studyPlanCard?.totalStudyHours > 0 ? (
+            <small>{studyPlanCard.totalStudyHours} planned study hours this week.</small>
+          ) : null}
+        </>
+      )}
+
+      <button
+        type="button"
+        className="student-next-task-button"
+        onClick={onOpenPlan}
+      >
+        Open Study Plan
+      </button>
+    </section>
+  );
+}
+
 function CourseSection({
+  className = "",
   badge,
   title,
   icon,
@@ -683,7 +1077,7 @@ function CourseSection({
   onAddReview,
 }) {
   return (
-    <section className="student-suggestions-section">
+    <section className={`student-suggestions-section ${className}`}>
       <div className="student-suggestions-header">
         <div>
           <span>
@@ -743,11 +1137,11 @@ function CourseCard({ course, onOpenCourse, onAddReview }) {
           <h3>{course.name}</h3>
         </div>
 
-        {!course.enrolledAt && course.description ? (
+        {!course.isEnrolled && course.description ? (
           <small>{course.description}</small>
         ) : null}
 
-        {!course.enrolledAt ? (
+        {!course.isEnrolled ? (
           <div className="student-course-meta">
             <span>
               <Banknote aria-hidden="true" />
@@ -763,7 +1157,7 @@ function CourseCard({ course, onOpenCourse, onAddReview }) {
           </div>
         ) : null}
 
-        {course.enrolledAt ? (
+        {course.isEnrolled ? (
           <>
             <div className="student-course-progress-block">
               <div className="student-course-progress-label">
@@ -824,7 +1218,10 @@ function mapSuggestedCourse(row, enrolledAt = null, progress = {}) {
     imgUrl: row?.img_url || "",
     introVideoUrl: row?.intro_vid_url || "",
     intro_vid_url: row?.intro_vid_url || "",
+    teacherId: row?.tid || null,
+    teacherName: row?.teacher?.full_name || "",
     enrolledAt,
+    isEnrolled: enrolledAt !== null && enrolledAt !== undefined,
     progressPercent: progress.progressPercent ?? 0,
     completed: progress.completed || false,
     averageRating,
@@ -840,6 +1237,82 @@ function hasMatchingLearningStyle(studentStyleKeys, teachingstyle) {
   }
 
   return courseStyleKeys.some((styleKey) => studentStyleKeys.includes(styleKey));
+}
+
+function getStudentSearchResults(courses, query, learningStyle) {
+  const normalizedQuery = query.trim().toLowerCase();
+  const studentStyleKeys = getVarkStyleKeys(learningStyle);
+
+  return [...courses]
+    .map((course) => ({
+      ...course,
+      searchScore: getCourseSearchScore(course, normalizedQuery, studentStyleKeys),
+    }))
+    .filter((course) => course.searchScore > Number.NEGATIVE_INFINITY)
+    .sort((left, right) => {
+      if (right.searchScore !== left.searchScore) {
+        return right.searchScore - left.searchScore;
+      }
+
+      return left.name.localeCompare(right.name);
+    })
+    .slice(0, 12);
+}
+
+function getCourseSearchScore(course, normalizedQuery, studentStyleKeys) {
+  const courseName = String(course.name || "").toLowerCase();
+  const teacherName = String(course.teacherName || "").toLowerCase();
+  const styleMatch = hasMatchingLearningStyle(studentStyleKeys, course.teachingstyle);
+
+  if (!normalizedQuery) {
+    return (styleMatch ? 400 : 0) + (course.isEnrolled ? 80 : 0);
+  }
+
+  const courseExact = courseName === normalizedQuery;
+  const teacherExact = teacherName === normalizedQuery;
+  const courseStartsWith = courseName.startsWith(normalizedQuery);
+  const teacherStartsWith = teacherName.startsWith(normalizedQuery);
+  const courseIncludes = courseName.includes(normalizedQuery);
+  const teacherIncludes = teacherName.includes(normalizedQuery);
+
+  if (
+    !courseExact &&
+    !teacherExact &&
+    !courseStartsWith &&
+    !teacherStartsWith &&
+    !courseIncludes &&
+    !teacherIncludes
+  ) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  let score = 0;
+
+  if (courseExact) {
+    score += 1200;
+  } else if (courseStartsWith) {
+    score += 900;
+  } else if (courseIncludes) {
+    score += 700;
+  }
+
+  if (teacherExact) {
+    score += 1100;
+  } else if (teacherStartsWith) {
+    score += 850;
+  } else if (teacherIncludes) {
+    score += 650;
+  }
+
+  if (styleMatch) {
+    score += 300;
+  }
+
+  if (course.isEnrolled) {
+    score += 120;
+  }
+
+  return score;
 }
 
 function formatLearningStyle(value) {
@@ -876,4 +1349,209 @@ function getInitials(name) {
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
+}
+
+function getNextStudentStreak(profile) {
+  const now = new Date();
+  const today = getLocalDateKey(now);
+  const yesterday = getLocalDateKey(
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+  );
+  const lastActiveDate = String(profile?.last_active_date || "").slice(0, 10);
+  const currentStreak = Number(profile?.current_streak || 0);
+  const longestStreak = Number(profile?.longest_streak || 0);
+
+  let nextStreak = 1;
+
+  if (lastActiveDate === today) {
+    nextStreak = Math.max(1, currentStreak);
+  } else if (lastActiveDate === yesterday && currentStreak > 0) {
+    nextStreak = currentStreak + 1;
+  }
+
+  return {
+    today,
+    currentStreak: nextStreak,
+    longestStreak: Math.max(longestStreak, nextStreak),
+  };
+}
+
+function getLocalDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getMonthStreakDays(currentStreak, referenceDate = new Date()) {
+  const weekdays = ["M", "T", "W", "T", "F", "S", "S"];
+  const year = referenceDate.getFullYear();
+  const month = referenceDate.getMonth();
+  const todayKey = getLocalDateKey(referenceDate);
+  const firstDayOfMonth = new Date(year, month, 1);
+  const firstWeekdayOffset =
+    firstDayOfMonth.getDay() === 0 ? 6 : firstDayOfMonth.getDay() - 1;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const streakCount = Math.max(0, Number(currentStreak || 0));
+  const activeDayKeys = new Set();
+
+  for (let offset = 0; offset < streakCount; offset += 1) {
+    const streakDate = new Date(year, month, referenceDate.getDate() - offset);
+
+    if (
+      streakDate.getFullYear() !== year ||
+      streakDate.getMonth() !== month
+    ) {
+      break;
+    }
+
+    activeDayKeys.add(getLocalDateKey(streakDate));
+  }
+
+  const days = [];
+
+  for (let index = 0; index < firstWeekdayOffset; index += 1) {
+    days.push({
+      key: `placeholder-${index}`,
+      label: "",
+      isPlaceholder: true,
+      active: false,
+      isToday: false,
+    });
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = new Date(year, month, day);
+    const dateKey = getLocalDateKey(date);
+
+    days.push({
+      key: dateKey,
+      label: day,
+      isPlaceholder: false,
+      active: activeDayKeys.has(dateKey),
+      isToday: dateKey === todayKey,
+    });
+  }
+
+  const trailingPlaceholderCount = (7 - (days.length % 7)) % 7;
+
+  for (let index = 0; index < trailingPlaceholderCount; index += 1) {
+    days.push({
+      key: `trailing-placeholder-${index}`,
+      label: "",
+      isPlaceholder: true,
+      active: false,
+      isToday: false,
+    });
+  }
+
+  return {
+    monthLabel: referenceDate.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    }),
+    weekdays,
+    days,
+  };
+}
+
+function getNextStudyTask(planJson, now = new Date()) {
+  if (!Array.isArray(planJson?.days)) {
+    return null;
+  }
+
+  const dayNames = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+  const todayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  for (let offset = 0; offset < 7; offset += 1) {
+    const dayIndex = (todayIndex + offset) % dayNames.length;
+    const dayName = dayNames[dayIndex];
+    const dayPlan = planJson.days.find((entry) => entry.day === dayName);
+    const sessions = [...(dayPlan?.sessions || [])].sort(
+      (a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime)
+    );
+
+    if (sessions.length === 0) {
+      continue;
+    }
+
+    if (offset === 0) {
+      const ongoingSession = sessions.find((session) => {
+        const start = parseTimeToMinutes(session.startTime);
+        const end = parseTimeToMinutes(session.endTime);
+
+        return currentMinutes >= start && currentMinutes < end;
+      });
+
+      if (ongoingSession) {
+        return {
+          ...ongoingSession,
+          dayLabel: "Today",
+          relativeLabel: "Right now",
+          timeLabel: `${ongoingSession.startTime} - ${ongoingSession.endTime}`,
+        };
+      }
+
+      const upcomingToday = sessions.find(
+        (session) => parseTimeToMinutes(session.startTime) > currentMinutes
+      );
+
+      if (upcomingToday) {
+        return {
+          ...upcomingToday,
+          dayLabel: "Today",
+          relativeLabel: "Later today",
+          timeLabel: `${upcomingToday.startTime} - ${upcomingToday.endTime}`,
+        };
+      }
+
+      continue;
+    }
+
+    const nextSession = sessions[0];
+
+    return {
+      ...nextSession,
+      dayLabel: offset === 1 ? "Tomorrow" : dayName,
+      relativeLabel:
+        offset === 1
+          ? "Coming up tomorrow"
+          : dayIndex > todayIndex || offset < 7 - todayIndex
+            ? dayName
+            : `Next ${dayName}`,
+      timeLabel: `${nextSession.startTime} - ${nextSession.endTime}`,
+    };
+  }
+
+  return null;
+}
+
+function parseTimeToMinutes(value) {
+  if (!value) {
+    return 0;
+  }
+
+  const [hours = "0", minutes = "0"] = String(value).split(":");
+
+  return Number(hours) * 60 + Number(minutes);
+}
+
+function formatActivityType(value) {
+  if (!value) {
+    return "Study session";
+  }
+
+  return String(value)
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

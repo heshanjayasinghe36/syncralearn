@@ -14,6 +14,7 @@ import CreateCoursePage from "./CreateCoursePage";
 import MyCoursesPage from "./MyCoursesPage";
 import TeacherAnalyticsPage from "./TeacherAnalyticsPage";
 import TeacherOverviewPage from "./TeacherOverviewPage";
+import TeacherSettingsPage from "./TeacherSettingsPage";
 
 const sidebarItems = [
   {
@@ -33,7 +34,7 @@ const sidebarItems = [
   },
 ];
 
-export default function TeacherDashboard({ session, onSignOut, teacherProfile }) {
+export default function TeacherDashboard({ session, onSignOut, teacherProfile, theme = "light", onToggleTheme }) {
   const [activeView, setActiveView] = useState("overview");
   const [courseModalOpen, setCourseModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -131,6 +132,7 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
             <button
               type="button"
               className="teacher-icon-button"
+              onClick={() => setActiveView("settings")}
               aria-label="Settings"
             >
               <Settings aria-hidden="true" />
@@ -182,6 +184,14 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile })
           <TeacherAnalyticsPage
             teacherProfile={teacherProfile}
             initialAnalyticsView="graphs"
+          />
+        ) : activeView === "settings" ? (
+          <TeacherSettingsPage
+            session={session}
+            teacherProfile={teacherProfile}
+            onProfileUpdate={() => {}}
+            theme={theme}
+            onToggleTheme={onToggleTheme}
           />
         ) : (
           <main
