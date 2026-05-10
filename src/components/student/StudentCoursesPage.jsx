@@ -1,4 +1,5 @@
 import { BookOpen } from "lucide-react";
+import "./StudentCoursesPage.css";
 
 export default function StudentCoursesPage({
   courses,

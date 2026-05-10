@@ -5,6 +5,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
+import "./AdminDashboard.css";
 import AdminVerificationPage from "./AdminVerificationPage";
 import { supabase } from "../../lib/supabase";
 
@@ -174,9 +175,14 @@ export default function AdminDashboard({ adminSession, onSignOut }) {
         </nav>
 
         <div className="admin-sidebar-status">
-          <span>Admin Session</span>
-          <strong>{adminSession?.username || "Admin"}</strong>
-        </div>
+  <button
+    type="button"
+    onClick={onSignOut}
+    className="admin-sidebar-signout-button"
+  >
+    Sign out
+  </button>
+</div>
       </aside>
 
       <section className="teacher-dashboard-main admin-dashboard-main">
@@ -234,23 +240,10 @@ function AdminUsersView({ adminSession, students, teachers, loading, onSignOut }
     <section className="admin-page">
       <div className="admin-page-header">
         <div>
-          <p className="admin-page-kicker">Admin Portal</p>
+          {/* <p className="admin-page-kicker">Admin Portal</p> */}
           <h1>Users</h1>
-          <p>Review student and teacher accounts from one place.</p>
-        </div>
-
-        <div className="admin-page-actions">
-          <div className="admin-session-card">
-            <p>Signed in as admin</p>
-            <strong>{adminSession?.username || "Admin"}</strong>
-          </div>
-          <button
-            type="button"
-            onClick={onSignOut}
-            className="exp-secondary-button admin-signout-button"
-          >
-            Sign out
-          </button>
+          <br />
+          {/* <p>Review student and teacher accounts from one place.</p> */}
         </div>
       </div>
 

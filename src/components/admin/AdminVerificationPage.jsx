@@ -9,16 +9,15 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import "./AdminVerificationPage.css";
 
 export default function AdminVerificationPage({
-  adminSession,
   pendingTeachers,
   loading,
   verifyingId,
   docUrls,
   onVerifyTeacher,
   onPreviewDocument,
-  onSignOut,
   accessNotice,
 }) {
   if (loading) {
@@ -48,24 +47,6 @@ export default function AdminVerificationPage({
             <h1>Teacher Verification</h1>
             <p>Review pending teacher accounts and approve them when documents check out.</p>
           </div>
-
-          <div className="admin-page-actions">
-            <div className="admin-session-card">
-              <p>Signed in as admin</p>
-              <strong>{adminSession?.username || "Admin"}</strong>
-            </div>
-            <div className="admin-session-card">
-              <p>Pending</p>
-              <strong>0</strong>
-            </div>
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="exp-secondary-button admin-signout-button"
-            >
-              Sign out
-            </button>
-          </div>
         </div>
 
         <section className="exp-frame admin-loading-card">
@@ -82,119 +63,158 @@ export default function AdminVerificationPage({
 
   return (
     <section className="admin-page admin-verification-page">
-      {pendingTeachers.map((teacher) => {
-        const activityItems = getVerificationActivity(teacher);
-        const documentUrl = docUrls[teacher.tid];
-        const documentType = getDocumentType(teacher.verify_doc);
+      <div className="admin-verification-content">
+        {pendingTeachers.map((teacher) => {
+          const activityItems = getVerificationActivity(teacher);
+          const documentUrl = docUrls[teacher.tid];
+          const documentType = getDocumentType(teacher.verify_doc);
 
-        return (
-          <div key={teacher.tid} className="admin-verification-case">
-            <div className="admin-page-header admin-verification-hero">
-              <div>
-                <p className="admin-page-kicker">Admin Portal</p>
-                <h1>Pending teacher verification.</h1>
-                <p>Review with a softer command center.</p>
-              </div>
-
-              <div className="admin-verification-summary-card">
+          return (
+            <div key={teacher.tid} className="admin-verification-case">
+              <div className="admin-page-header admin-verification-hero">
                 <div>
-                  <p>Signed in as admin</p>
-                  <strong>{adminSession?.username || "Admin"}</strong>
-                  <small>Pending: {pendingTeachers.length}</small>
+                  {/* <p className="admin-page-kicker">Admin Portal</p> */}
+                  <h1>Pending teacher verification.</h1>
+                  <br />
+                  {/* <p>Review with a softer command center.</p> */}
                 </div>
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  className="exp-secondary-button admin-signout-button"
-                >
-                  Sign out
-                </button>
               </div>
-            </div>
 
-            <div className="admin-verification-layout admin-verification-top-grid">
-              <section className="exp-frame admin-verification-profile-card">
-                <div className="admin-verification-profile-main">
-                  <div className="admin-verification-profile-id">
-                    <div className="admin-avatar admin-avatar-photo">
-                      <GraduationCap aria-hidden="true" />
-                    </div>
+              <div className="admin-verification-layout admin-verification-top-grid">
+                <section className="exp-frame admin-verification-profile-card">
+                  <div className="admin-verification-profile-main">
+                    <div className="admin-verification-profile-id">
+                      <div className="admin-avatar admin-avatar-photo">
+                        <GraduationCap aria-hidden="true" />
+                      </div>
 
-                    <div className="admin-verification-profile-copy">
-                      <h2>{teacher.full_name || "Unnamed lecturer"}</h2>
-                      <p>{teacher.email || "No email"}</p>
+                      <div className="admin-verification-profile-copy">
+                        <h2>{teacher.full_name || "Unnamed lecturer"}</h2>
+                        <p>{teacher.email || "No email"}</p>
 
-                      <div className="admin-badge-row">
-                        <span className="admin-status-chip is-pending">
-                          {formatVerificationStatus(teacher.verification_status)}
-                        </span>
-                        <span className="admin-status-chip is-id">TID {teacher.tid}</span>
+                        <div className="admin-badge-row">
+                          <span className="admin-status-chip is-pending">
+                            {formatVerificationStatus(teacher.verification_status)}
+                          </span>
+                          <span className="admin-status-chip is-id">TID {teacher.tid}</span>
+                        </div>
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onVerifyTeacher(teacher)}
+                      disabled={verifyingId === teacher.tid}
+                      className="exp-primary-button admin-verify-button admin-verify-button-large"
+                    >
+                      <ShieldCheck aria-hidden="true" />
+                      <span>
+                        {verifyingId === teacher.tid ? "Verifying..." : "Verify teacher"}
+                      </span>
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => onVerifyTeacher(teacher)}
-                    disabled={verifyingId === teacher.tid}
-                    className="exp-primary-button admin-verify-button admin-verify-button-large"
-                  >
-                    <ShieldCheck aria-hidden="true" />
-                    <span>
-                      {verifyingId === teacher.tid ? "Verifying..." : "Verify teacher"}
-                    </span>
-                  </button>
-                </div>
+                  <div className="admin-verification-profile-links">
+                    <InlineLink label="LinkedIn" href={teacher.linkedin_url} />
+                    <InlineLink label="GitHub" href={teacher.github_url} />
+                  </div>
+                </section>
 
-                <div className="admin-verification-profile-links">
-                  <InlineLink label="LinkedIn" href={teacher.linkedin_url} />
-                  <InlineLink label="GitHub" href={teacher.github_url} />
-                </div>
-              </section>
+                <aside className="admin-verification-facts-grid">
+                  <FactCard
+                    icon={<GraduationCap aria-hidden="true" />}
+                    label="Qualification"
+                    value={teacher.academic_qualification}
+                    tone="mint"
+                  />
+                  <FactCard
+                    icon={<Sparkles aria-hidden="true" />}
+                    label="Field of Study"
+                    value={teacher.field_of_study}
+                    tone="lavender"
+                  />
+                  <FactCard
+                    icon={<Building2 aria-hidden="true" />}
+                    label="Institution"
+                    value={teacher.institution_name}
+                    tone="peach"
+                  />
+                  <FactCard
+                    icon={<IdCard aria-hidden="true" />}
+                    label="Staff / Student ID"
+                    value={teacher.staff_or_student_id}
+                    tone="mint"
+                  />
+                </aside>
+              </div>
 
-              <aside className="admin-verification-facts-grid">
-                <FactCard
-                  icon={<GraduationCap aria-hidden="true" />}
-                  label="Qualification"
-                  value={teacher.academic_qualification}
-                  tone="mint"
-                />
-                <FactCard
-                  icon={<Sparkles aria-hidden="true" />}
-                  label="Field of Study"
-                  value={teacher.field_of_study}
-                  tone="lavender"
-                />
-                <FactCard
-                  icon={<Building2 aria-hidden="true" />}
-                  label="Institution"
-                  value={teacher.institution_name}
-                  tone="peach"
-                />
-                <FactCard
-                  icon={<IdCard aria-hidden="true" />}
-                  label="Staff / Student ID"
-                  value={teacher.staff_or_student_id}
-                  tone="mint"
-                />
-              </aside>
-            </div>
+              <div className="admin-verification-layout admin-verification-bottom-grid">
+                <section className="exp-frame admin-verification-document-panel">
+                  <div className="admin-verification-document-head">
+                    <div className="admin-verification-document-title">
+                      <span>
+                        <FileText aria-hidden="true" />
+                      </span>
+                      <div>
+                        <h3>Verification document</h3>
+                      </div>
+                    </div>
 
-            <div className="admin-verification-layout admin-verification-bottom-grid">
-              <section className="exp-frame admin-verification-document-panel">
-                <div className="admin-verification-document-head">
-                  <div className="admin-verification-document-title">
-                    <span>
-                      <FileText aria-hidden="true" />
-                    </span>
-                    <div>
-                      <h3>Verification document</h3>
+                    <div className="admin-document-actions">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onPreviewDocument({
+                            name: `${teacher.full_name || "Teacher"} verification document`,
+                            path: teacher.verify_doc,
+                            url: documentUrl,
+                          })
+                        }
+                        disabled={!documentUrl || !teacher.verify_doc}
+                        className="exp-primary-button admin-inline-button admin-preview-button"
+                      >
+                        <Eye aria-hidden="true" />
+                        <span>Preview</span>
+                      </button>
+
+                      <a
+                        href={documentUrl || "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="exp-secondary-button admin-inline-button admin-open-button"
+                        aria-disabled={!documentUrl || !teacher.verify_doc}
+                        onClick={(event) => {
+                          if (!documentUrl || !teacher.verify_doc) {
+                            event.preventDefault();
+                          }
+                        }}
+                      >
+                        <ExternalLink aria-hidden="true" />
+                        <span>Open in new tab</span>
+                      </a>
                     </div>
                   </div>
 
-                  <div className="admin-document-actions">
+                  <div className="admin-document-preview-surface">
+                    {documentUrl && teacher.verify_doc ? (
+                      documentType === "image" ? (
+                        <img
+                          src={documentUrl}
+                          alt={`${teacher.full_name || "Teacher"} verification document`}
+                          className="admin-document-preview-image"
+                        />
+                      ) : documentType === "pdf" ? (
+                        <iframe
+                          title={`${teacher.full_name || "Teacher"} verification document`}
+                          src={documentUrl}
+                          className="admin-document-preview-iframe"
+                        />
+                      ) : null
+                    ) : null}
+
                     <button
                       type="button"
+                      className="admin-document-preview-overlay"
                       onClick={() =>
                         onPreviewDocument({
                           name: `${teacher.full_name || "Teacher"} verification document`,
@@ -203,95 +223,47 @@ export default function AdminVerificationPage({
                         })
                       }
                       disabled={!documentUrl || !teacher.verify_doc}
-                      className="exp-primary-button admin-inline-button admin-preview-button"
                     >
-                      <Eye aria-hidden="true" />
-                      <span>Preview</span>
-                    </button>
-
-                    <a
-                      href={documentUrl || "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="exp-secondary-button admin-inline-button admin-open-button"
-                      aria-disabled={!documentUrl || !teacher.verify_doc}
-                      onClick={(event) => {
-                        if (!documentUrl || !teacher.verify_doc) {
-                          event.preventDefault();
-                        }
-                      }}
-                    >
-                      <ExternalLink aria-hidden="true" />
-                      <span>Open in new tab</span>
-                    </a>
-                  </div>
-                </div>
-
-                <div className="admin-document-preview-surface">
-                  {documentUrl && teacher.verify_doc ? (
-                    documentType === "image" ? (
-                      <img
-                        src={documentUrl}
-                        alt={`${teacher.full_name || "Teacher"} verification document`}
-                        className="admin-document-preview-image"
-                      />
-                    ) : documentType === "pdf" ? (
-                      <iframe
-                        title={`${teacher.full_name || "Teacher"} verification document`}
-                        src={documentUrl}
-                        className="admin-document-preview-iframe"
-                      />
-                    ) : null
-                  ) : null}
-
-                  <button
-                    type="button"
-                    className="admin-document-preview-overlay"
-                    onClick={() =>
-                      onPreviewDocument({
-                        name: `${teacher.full_name || "Teacher"} verification document`,
-                        path: teacher.verify_doc,
-                        url: documentUrl,
-                      })
-                    }
-                    disabled={!documentUrl || !teacher.verify_doc}
-                  >
-                    <div className="admin-document-preview-tile">
-                      <FileText aria-hidden="true" />
-                      <strong>{teacher.verify_doc || "Document not uploaded"}</strong>
-                      <span>
-                        {documentUrl && teacher.verify_doc
-                          ? "Click to expand preview"
-                          : "No document available"}
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              </section>
-
-              <section className="exp-frame admin-activity-card">
-                <h3>Activity Log</h3>
-                <div className="admin-activity-list">
-                  {activityItems.map((item, index) => (
-                    <div key={`${teacher.tid}-${item.label}-${index}`} className="admin-activity-item">
-                      <span className={`admin-activity-dot ${item.active ? "is-active" : ""}`} />
-                      <div>
-                        <strong>{item.label}</strong>
-                        <p>{item.time}</p>
+                      <div className="admin-document-preview-tile">
+                        <FileText aria-hidden="true" />
+                        <strong>{teacher.verify_doc || "Document not uploaded"}</strong>
+                        <span>
+                          {documentUrl && teacher.verify_doc
+                            ? "Click to expand preview"
+                            : "No document available"}
+                        </span>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    </button>
+                  </div>
+                </section>
 
-                <div className="exp-card admin-verified-at-card">
-                  <p>Verified At</p>
-                  <strong>{formatVerifiedAt(teacher.verified_at)}</strong>
-                </div>
-              </section>
+                <section className="exp-frame admin-activity-card">
+                  <h3>Activity Log</h3>
+                  <div className="admin-activity-list">
+                    {activityItems.map((item, index) => (
+                      <div
+                        key={`${teacher.tid}-${item.label}-${index}`}
+                        className="admin-activity-item"
+                      >
+                        <span className={`admin-activity-dot ${item.active ? "is-active" : ""}`} />
+                        <div>
+                          <strong>{item.label}</strong>
+                          <p>{item.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="exp-card admin-verified-at-card">
+                    <p>Verified At</p>
+                    <strong>{formatVerifiedAt(teacher.verified_at)}</strong>
+                  </div>
+                </section>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </section>
   );
 }
