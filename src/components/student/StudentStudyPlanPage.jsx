@@ -248,7 +248,7 @@ function StudentStudyPlanPage() {
 
     <h1>Your Learning Blueprint</h1>
     <p>
-      Tell us when you're free, and our adaptive algorithm will craft a
+      Tell us when you're free, and we will craft a
       personalized study plan that matches your energy levels and goals.
     </p>
   </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Banknote,
   Calendar,
@@ -45,6 +45,13 @@ const courseStatuses = [
   { value: "draft", label: "Set as draft" },
 ];
 
+const courseTabs = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "draft", label: "Draft" },
+  { value: "hold", label: "Hold" },
+];
+
 export default function MyCoursesPage({
   teacherProfile,
   modalOpen,
@@ -64,7 +71,16 @@ export default function MyCoursesPage({
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [activeCourseTab, setActiveCourseTab] = useState("all");
   const isEditingCourse = Boolean(editingCourse);
+
+  const filteredCourses = useMemo(() => {
+    if (activeCourseTab === "all") {
+      return courses;
+    }
+
+    return courses.filter((course) => course.rawStatus === activeCourseTab);
+  }, [activeCourseTab, courses]);
 
   useEffect(() => {
     let ignore = false;
@@ -395,11 +411,16 @@ export default function MyCoursesPage({
 
       <div className="teacher-courses-toolbar">
         <div className="teacher-course-tabs" aria-label="Course filters">
-          <button type="button" className="is-active">
-            Active
-          </button>
-          <button type="button">Draft</button>
-          <button type="button">Hold</button>
+          {courseTabs.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              className={activeCourseTab === tab.value ? "is-active" : ""}
+              onClick={() => setActiveCourseTab(tab.value)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <div className="teacher-course-stats">
@@ -420,8 +441,8 @@ export default function MyCoursesPage({
       <section className="teacher-course-grid" aria-label="Course list">
         {loadingCourses ? (
           <p className="teacher-course-empty">Loading your courses...</p>
-        ) : courses.length > 0 ? (
-          courses.map((course) => (
+        ) : filteredCourses.length > 0 ? (
+          filteredCourses.map((course) => (
             <CourseCard
               key={course.id}
               course={course}
@@ -442,7 +463,9 @@ export default function MyCoursesPage({
           ))
         ) : (
           <p className="teacher-course-empty">
-            No courses yet. Create a course to see it here.
+            {activeCourseTab === "all"
+              ? "No courses yet. Create a course to see it here."
+              : `No ${activeCourseTab} courses found.`}
           </p>
         )}
       </section>

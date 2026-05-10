@@ -52,6 +52,8 @@ export default function CoursePreviewPage({
   previewLabel = "Student Preview",
   pageLabel = "Student course preview",
   backLabel = "Back to My Courses",
+  profileLabel = "Student",
+  showStreak = true,
   enableVideoTracking = false,
   studentId = null,
   initialLessonId = null,
@@ -249,13 +251,15 @@ export default function CoursePreviewPage({
             <Bell aria-hidden="true" />
           </button>
 
-          <div className="student-streak-chip" aria-label="Learning streak">
-            <Flame aria-hidden="true" />
-            <span>0</span>
-          </div>
+          {showStreak ? (
+            <div className="student-streak-chip" aria-label="Learning streak">
+              <Flame aria-hidden="true" />
+              <span>0</span>
+            </div>
+          ) : null}
 
           <div className="teacher-profile-chip">
-            <div className="teacher-avatar" aria-label="Student avatar">
+            <div className="teacher-avatar" aria-label={`${profileLabel} avatar`}>
               {avatarInitials}
             </div>
           </div>

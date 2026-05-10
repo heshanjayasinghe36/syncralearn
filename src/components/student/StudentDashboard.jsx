@@ -843,8 +843,6 @@ export default function StudentDashboard({
                 studyPlanCard ? "has-next-task" : "no-next-task"
               }`}
             >
-              <DailyStreakCard currentStreak={currentStreak} />
-
               <CourseSection
                 className="student-continue-section"
                 badge="Your learning"
@@ -872,19 +870,13 @@ export default function StudentDashboard({
                 }}
               />
 
-              {studyPlanCard ? (
-                <NextStudyTaskCard
-                  studyPlanCard={studyPlanCard}
-                  onOpenPlan={() => setActiveView("study-plan")}
-                />
-              ) : null}
-
               <CourseSection
                 className="student-suggested-section"
                 badge="Matched for your style"
                 title="Suggested Courses"
                 icon={<Sparkles aria-hidden="true" />}
                 courses={suggestedCourses}
+                forcePreviewDetails
                 loading={loadingSuggestions}
                 loadingText="Loading suggested courses..."
                 message={suggestionMessage}
@@ -894,6 +886,17 @@ export default function StudentDashboard({
                   setActiveView("course-preview");
                 }}
               />
+
+              <div className="student-dashboard-right-column">
+                {studyPlanCard ? (
+                  <NextStudyTaskCard
+                    studyPlanCard={studyPlanCard}
+                    onOpenPlan={() => setActiveView("study-plan")}
+                  />
+                ) : null}
+
+                <DailyStreakCard currentStreak={currentStreak} />
+              </div>
             </div>
           ) : null}
         </main>
@@ -1070,20 +1073,36 @@ function CourseSection({
   title,
   icon,
   courses,
+  forcePreviewDetails = false,
   loading,
   loadingText,
   message,
   onOpenCourse,
   onAddReview,
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = courses.length > 3;
+  const visibleCourses = expanded ? courses : courses.slice(0, 3);
+
   return (
     <section className={`student-suggestions-section ${className}`}>
       <div className="student-suggestions-header">
         <div>
-          <span>
-            {icon}
-            {badge}
-          </span>
+          <div className="student-suggestions-header-top">
+            <span>
+              {icon}
+              {badge}
+            </span>
+            {canExpand ? (
+              <button
+                type="button"
+                className="student-suggestions-toggle"
+                onClick={() => setExpanded((current) => !current)}
+              >
+                {expanded ? "See less" : "See more"}
+              </button>
+            ) : null}
+          </div>
           <h2>{title}</h2>
         </div>
       </div>
@@ -1094,10 +1113,11 @@ function CourseSection({
         <p className="student-suggestion-state">{message}</p>
       ) : (
         <div className="student-suggestion-grid">
-          {courses.map((course) => (
+          {visibleCourses.map((course) => (
             <CourseCard
               key={course.id}
               course={course}
+              forcePreviewDetails={forcePreviewDetails}
               onOpenCourse={onOpenCourse}
               onAddReview={onAddReview}
             />
@@ -1108,7 +1128,9 @@ function CourseSection({
   );
 }
 
-function CourseCard({ course, onOpenCourse, onAddReview }) {
+function CourseCard({ course, forcePreviewDetails = false, onOpenCourse, onAddReview }) {
+  const showPreviewDetails = forcePreviewDetails || !course.isEnrolled;
+
   return (
     <article
       className="student-course-card"
@@ -1137,11 +1159,11 @@ function CourseCard({ course, onOpenCourse, onAddReview }) {
           <h3>{course.name}</h3>
         </div>
 
-        {!course.isEnrolled && course.description ? (
+        {showPreviewDetails && course.description ? (
           <small>{course.description}</small>
         ) : null}
 
-        {!course.isEnrolled ? (
+        {showPreviewDetails ? (
           <div className="student-course-meta">
             <span>
               <Banknote aria-hidden="true" />
@@ -1157,7 +1179,7 @@ function CourseCard({ course, onOpenCourse, onAddReview }) {
           </div>
         ) : null}
 
-        {course.isEnrolled ? (
+        {!showPreviewDetails ? (
           <>
             <div className="student-course-progress-block">
               <div className="student-course-progress-label">

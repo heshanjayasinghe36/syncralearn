@@ -1913,30 +1913,29 @@ body::selection {
 
   .student-dashboard-overview {
     display: grid;
-    grid-template-columns: max-content max-content;
+    grid-template-columns: minmax(0, 1fr) minmax(16.9rem, 19.5rem);
     grid-template-areas:
-      "continue streak"
-      "next suggested";
-    justify-content: center;
+      "continue right"
+      "suggested right";
     justify-items: stretch;
     min-height: 100%;
     align-content: start;
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
-    margin-inline: auto;
+    margin-inline: 0;
     gap: 0.6rem;
   }
 
   .student-dashboard-overview.no-next-task {
     grid-template-areas:
-      "continue streak"
-      "suggested suggested";
+      "continue right"
+      "suggested right";
   }
 
   .student-continue-section {
     grid-area: continue;
     align-self: start;
-    justify-self: end;
+    justify-self: start;
   }
 
   .student-suggested-section {
@@ -1945,15 +1944,19 @@ body::selection {
     justify-self: start;
   }
 
-  .student-dashboard-overview.no-next-task .student-suggested-section {
-    justify-self: center;
+  .student-dashboard-right-column {
+    grid-area: right;
+    display: grid;
+    align-content: start;
+    justify-items: end;
+    gap: 0.6rem;
   }
 
   .student-suggestions-section {
     min-width: 0;
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
-    justify-self: center;
+    justify-self: start;
     overflow: hidden;
     border: 1px solid rgba(184, 227, 218, 0.74);
     border-top: 4px solid #20b9aa;
@@ -1967,12 +1970,11 @@ body::selection {
 
   .student-daily-streak-card {
     display: grid;
-    grid-area: streak;
-    align-self: end;
-    justify-self: start;
-    width: min(16.9rem, 100%);
-    min-height: 11.2rem;
-    gap: 0.48rem;
+    align-self: start;
+    justify-self: end;
+    width: 100%;
+    min-height: 10.3rem;
+    gap: 0.42rem;
     border: 1px solid rgba(184, 227, 218, 0.74);
     border-top: 4px solid #7b587f;
     border-radius: 1.3rem;
@@ -1980,15 +1982,14 @@ body::selection {
       linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(247, 253, 251, 0.8)),
       radial-gradient(circle at 86% 18%, rgba(242, 229, 245, 0.68), transparent 10rem);
     box-shadow: 0 16px 36px rgba(37, 75, 68, 0.07);
-    padding: 0.75rem 0.85rem;
+    padding: 0.68rem 0.78rem;
   }
 
   .student-next-task-card {
     display: grid;
-    grid-area: next;
     align-self: start;
     justify-self: end;
-    width: min(19.5rem, 100%);
+    width: 100%;
     min-height: 7rem;
     gap: 0.42rem;
     border: 1px solid rgba(184, 227, 218, 0.74);
@@ -2215,12 +2216,23 @@ body::selection {
 
   .student-suggestions-header {
     display: flex;
-    width: max-content;
+    width: 100%;
     max-width: 100%;
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 0.55rem;
+  }
+
+  .student-suggestions-header > div {
+    width: 100%;
+  }
+
+  .student-suggestions-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
   }
 
   .student-suggestions-header span {
@@ -2265,6 +2277,22 @@ body::selection {
     font-weight: 850;
   }
 
+  .student-suggestions-toggle {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: #007c70;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .student-suggestions-toggle:hover {
+    color: #0f5f53;
+    text-decoration: underline;
+  }
+
   .student-suggestion-state {
     min-width: min(22rem, 100%);
     border: 1px dashed rgba(127, 150, 146, 0.38);
@@ -2277,16 +2305,13 @@ body::selection {
   }
 
   .student-suggestion-grid {
-    display: flex;
-    width: max-content;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
     max-width: 100%;
     gap: 0.75rem;
     margin-top: 0.65rem;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    padding: 0.05rem 0.08rem 0.52rem;
-    scroll-padding-inline: 0.08rem;
-    scroll-snap-type: x proximity;
+    padding: 0.05rem 0.08rem 0.12rem;
   }
 
   .student-suggestion-grid::-webkit-scrollbar {
@@ -2304,7 +2329,7 @@ body::selection {
   }
 
   .student-course-card {
-    flex: 0 0 clamp(13rem, 22vw, 15.5rem);
+    width: 100%;
     overflow: hidden;
     border: 1px solid rgba(210, 229, 228, 0.72);
     border-top: 4px solid #20b9aa;
@@ -2312,7 +2337,6 @@ body::selection {
     background: rgba(255, 255, 255, 0.86);
     box-shadow: 0 12px 28px rgba(37, 75, 68, 0.07);
     cursor: pointer;
-    scroll-snap-align: start;
     transition:
       border-color 180ms ease,
       box-shadow 180ms ease,
@@ -2454,23 +2478,32 @@ body::selection {
   }
 
   @media (max-width: 1100px) {
+    .student-suggestion-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .student-dashboard-overview,
     .student-dashboard-overview.no-next-task {
       width: 100%;
       grid-template-columns: 1fr;
       grid-template-areas:
         "continue"
-        "streak"
-        "next"
+        "right"
         "suggested";
       justify-items: center;
     }
 
     .student-continue-section,
     .student-suggested-section,
+    .student-dashboard-right-column,
     .student-daily-streak-card,
     .student-next-task-card {
       justify-self: center;
+    }
+
+    .student-dashboard-right-column {
+      width: 100%;
+      justify-items: center;
     }
 
     .student-daily-streak-card {
@@ -2483,6 +2516,17 @@ body::selection {
 
     .student-suggestions-section {
       justify-self: center;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .student-suggestion-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .student-suggestions-header-top {
+      align-items: flex-start;
+      flex-wrap: wrap;
     }
   }
 
