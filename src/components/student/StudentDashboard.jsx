@@ -843,49 +843,51 @@ export default function StudentDashboard({
                 studyPlanCard ? "has-next-task" : "no-next-task"
               }`}
             >
-              <CourseSection
-                className="student-continue-section"
-                badge="Your learning"
-                title="Continue Learning"
-                icon={<BookOpen aria-hidden="true" />}
-                courses={enrolledCourses}
-                loading={loadingEnrolledCourses}
-                loadingText="Loading enrolled courses..."
-                message={
-                  enrolledCoursesMessage ||
-                  (enrolledCourses.length === 0
-                    ? "You have not enrolled in any courses yet."
-                    : "")
-                }
-                onOpenCourse={(course) => {
-                  setCourseReturnView("dashboard");
-                  setSelectedCourse(course);
-                  setActiveView("enrolled-course-preview");
-                }}
-                onAddReview={(course) => {
-                  setReviewPopup({
-                    courseId: course.cid,
-                    courseName: course.name,
-                  });
-                }}
-              />
+              <div className="student-dashboard-scroll-column">
+                <CourseSection
+                  className="student-continue-section"
+                  badge="Your learning"
+                  title="Continue Learning"
+                  icon={<BookOpen aria-hidden="true" />}
+                  courses={enrolledCourses}
+                  loading={loadingEnrolledCourses}
+                  loadingText="Loading enrolled courses..."
+                  message={
+                    enrolledCoursesMessage ||
+                    (enrolledCourses.length === 0
+                      ? "You have not enrolled in any courses yet."
+                      : "")
+                  }
+                  onOpenCourse={(course) => {
+                    setCourseReturnView("dashboard");
+                    setSelectedCourse(course);
+                    setActiveView("enrolled-course-preview");
+                  }}
+                  onAddReview={(course) => {
+                    setReviewPopup({
+                      courseId: course.cid,
+                      courseName: course.name,
+                    });
+                  }}
+                />
 
-              <CourseSection
-                className="student-suggested-section"
-                badge="Matched for your style"
-                title="Suggested Courses"
-                icon={<Sparkles aria-hidden="true" />}
-                courses={suggestedCourses}
-                forcePreviewDetails
-                loading={loadingSuggestions}
-                loadingText="Loading suggested courses..."
-                message={suggestionMessage}
-                onOpenCourse={(course) => {
-                  setCourseReturnView("dashboard");
-                  setSelectedCourse(course);
-                  setActiveView("course-preview");
-                }}
-              />
+                <CourseSection
+                  className="student-suggested-section"
+                  badge="Matched for your style"
+                  title="Suggested Courses"
+                  icon={<Sparkles aria-hidden="true" />}
+                  courses={suggestedCourses}
+                  forcePreviewDetails
+                  loading={loadingSuggestions}
+                  loadingText="Loading suggested courses..."
+                  message={suggestionMessage}
+                  onOpenCourse={(course) => {
+                    setCourseReturnView("dashboard");
+                    setSelectedCourse(course);
+                    setActiveView("course-preview");
+                  }}
+                />
+              </div>
 
               <div className="student-dashboard-right-column">
                 {studyPlanCard ? (

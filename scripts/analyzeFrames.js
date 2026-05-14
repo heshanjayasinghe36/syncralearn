@@ -102,7 +102,7 @@ Rules:
     ],
   });
 
-  console.log(`Gemini frame model used: ${model}`);
+  // console.log(`Gemini frame model used: ${model}`);
 
   return JSON.parse(cleanJson(response.text));
 }
@@ -145,7 +145,7 @@ async function processFrameAnalysis() {
       .eq("vid", video.vid);
 
     try {
-      console.log("Downloading YouTube video...");
+      console.log("Downloading the video...");
       await downloadYoutube(video.url, videoPath);
 
       console.log("Extracting frames...");
@@ -153,7 +153,7 @@ async function processFrameAnalysis() {
 
       console.log(`Extracted ${framePaths.length} frames.`);
 
-      console.log("Analyzing frames with Gemini...");
+      // console.log("Analyzing frames with Gemini...");
       const frameResult = await analyzeFrames(framePaths);
 
       console.log("Frame result:", frameResult);

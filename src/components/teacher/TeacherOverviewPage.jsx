@@ -12,11 +12,15 @@ const INSIGHTS_TABLE = "teacher_course_insights";
 export default function TeacherOverviewPage({ teacherProfile }) {
   const [insights, setInsights] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [completionTrend, setCompletionTrend] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const summaryStats = useMemo(() => buildSummaryStats(insights), [insights]);
-  const chartData = useMemo(() => buildCourseCompletionData(insights), [insights]);
+  const chartData = useMemo(
+    () => buildCourseCompletionData(completionTrend),
+    [completionTrend]
+  );
   const latestReviews = useMemo(
     () => buildLatestReviews(insights, reviews),
     [insights, reviews]
@@ -29,6 +33,7 @@ export default function TeacherOverviewPage({ teacherProfile }) {
     async function loadOverviewStats() {
       if (!teacherProfile?.tid || !supabase) {
         setInsights([]);
+        setCompletionTrend([]);
         setMessage(supabaseConfigError || "Teacher profile was not found.");
         return;
       }
@@ -36,40 +41,71 @@ export default function TeacherOverviewPage({ teacherProfile }) {
       setLoading(true);
       setMessage("");
 
-      const { data, error } = await supabase
-        .from(INSIGHTS_TABLE)
-        .select(
-          "insight_id, tid, cid, risk_level, insight_json, metrics_json, course(name)"
-        )
-        .eq("tid", teacherProfile.tid);
+      const [insightResult, courseResult] = await Promise.all([
+        supabase
+          .from(INSIGHTS_TABLE)
+          .select(
+            "insight_id, tid, cid, risk_level, insight_json, metrics_json, course(name)"
+          )
+          .eq("tid", teacherProfile.tid),
+        supabase
+          .from("course")
+          .select("cid, name")
+          .eq("tid", teacherProfile.tid)
+          .order("cid", { ascending: false }),
+      ]);
 
       if (ignore) {
         return;
       }
 
-      if (error) {
+      if (insightResult.error) {
         setInsights([]);
-        setMessage(formatInsightLoadError(error));
+        setMessage(formatInsightLoadError(insightResult.error));
         setLoading(false);
         return;
       }
 
-      const mappedInsights = (data || []).map(mapInsightRow);
+      if (courseResult.error) {
+        setInsights([]);
+        setCompletionTrend([]);
+        setMessage(`Overview load failed: ${courseResult.error.message}`);
+        setLoading(false);
+        return;
+      }
+
+      const mappedInsights = (insightResult.data || []).map(mapInsightRow);
+      const teacherCourses = courseResult.data || [];
+      const courseIds = teacherCourses.map((course) => course.cid).filter(Boolean);
 
       setInsights(mappedInsights);
 
-      if (mappedInsights.length > 0) {
-        const courseIds = [
-          ...new Set(mappedInsights.map((item) => item.cid).filter(Boolean)),
-        ];
+      if (courseIds.length > 0) {
+        const [{ data: enrollmentRows, error: enrollmentError }, { data: reviewRows, error: reviewError }] =
+          await Promise.all([
+            supabase
+              .from("student_course")
+              .select("cid, progress_percent, completed")
+              .in("cid", courseIds),
+            supabase
+              .from("review")
+              .select("rid, cid, rating, comment, date, time, course(name)")
+              .in("cid", courseIds)
+              .order("date", { ascending: false })
+              .order("time", { ascending: false })
+              .limit(5),
+          ]);
 
-        const { data: reviewRows, error: reviewError } = await supabase
-          .from("review")
-          .select("rid, cid, rating, comment, date, time")
-          .in("cid", courseIds)
-          .order("date", { ascending: false })
-          .order("time", { ascending: false })
-          .limit(5);
+        if (!ignore) {
+          if (enrollmentError) {
+            console.warn("Course completion trend load failed:", enrollmentError);
+            setCompletionTrend(buildEmptyCompletionTrend(teacherCourses));
+          } else {
+            setCompletionTrend(
+              buildCompletionTrendFromEnrollments(teacherCourses, enrollmentRows || [])
+            );
+          }
+        }
 
         if (!ignore) {
           if (reviewError) {
@@ -80,6 +116,7 @@ export default function TeacherOverviewPage({ teacherProfile }) {
           }
         }
       } else {
+        setCompletionTrend([]);
         setReviews([]);
       }
 
@@ -187,16 +224,33 @@ export default function TeacherOverviewPage({ teacherProfile }) {
                       <div
                         key={item.id}
                         className="teacher-overview-bar-item"
-                        title={`${item.courseName}: ${Math.round(item.completion)}%`}
+                        tabIndex={0}
+                        aria-label={`${item.courseName}, ${Math.round(
+                          item.completion
+                        )}% average progress, ${item.enrolledStudents} enrolled students, ${item.completedStudents} completions`}
                       >
                         <div className="teacher-overview-bar-track">
                           <div
                             className="teacher-overview-bar-fill"
                             style={{
-                              height: `${Math.max(8, item.completion)}%`,
+                              height: `${Math.max(
+                                0,
+                                Math.min(100, Number(item.completion) || 0)
+                              )}%`,
                             }}
                           >
                             <span className="teacher-overview-bar-dot" />
+
+                            <div className="teacher-overview-bar-tooltip" role="tooltip">
+                              <strong>{item.courseName}</strong>
+                              <span>{Math.round(item.completion)}% average progress</span>
+                              <span>
+                                Student count: <b>{item.enrolledStudents}</b>
+                              </span>
+                              <span>
+                                Completions: <b>{item.completedStudents}</b>
+                              </span>
+                            </div>
                           </div>
                         </div>
 
@@ -295,19 +349,7 @@ function mapInsightRow(row) {
 }
 
 function buildCourseCompletionData(insights) {
-  return insights
-    .map((insight) => ({
-      id: insight.id,
-      courseName: insight.courseName,
-      completion: Math.min(
-        100,
-        Math.max(
-          0,
-          Number(insight.metrics.enrollment?.averageProgressPercent || 0)
-        )
-      ),
-    }))
-    .sort((a, b) => b.completion - a.completion);
+  return [...insights].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
 }
 
 function buildLatestReviews(insights, reviews) {
@@ -319,7 +361,10 @@ function buildLatestReviews(insights, reviews) {
     .slice(0, 4)
     .map((review) => ({
       ...review,
-      courseName: courseById[review.cid] || `Course ${review.cid}`,
+      courseName:
+        review.course?.name ||
+        courseById[review.cid] ||
+        `Course ${review.cid}`,
     }));
 }
 
@@ -357,6 +402,52 @@ function buildSummaryStats(insights) {
       0
     ),
   };
+}
+
+function buildCompletionTrendFromEnrollments(courses, enrollments) {
+  const statsByCourseId = (enrollments || []).reduce((stats, row) => {
+    const courseId = String(row.cid);
+
+    if (!stats[courseId]) {
+      stats[courseId] = {
+        count: 0,
+        totalProgress: 0,
+        completedCount: 0,
+      };
+    }
+
+    stats[courseId].count += 1;
+    stats[courseId].totalProgress += Number(row.progress_percent || 0);
+    if (row.completed) {
+      stats[courseId].completedCount += 1;
+    }
+
+    return stats;
+  }, {});
+
+  return (courses || []).map((course) => {
+    const stats = statsByCourseId[String(course.cid)];
+    const completion =
+      stats?.count > 0 ? Math.round(stats.totalProgress / stats.count) : 0;
+
+    return {
+      id: course.cid,
+      courseName: course.name || `Course ${course.cid}`,
+      completion,
+      enrolledStudents: stats?.count || 0,
+      completedStudents: stats?.completedCount || 0,
+    };
+  });
+}
+
+function buildEmptyCompletionTrend(courses) {
+  return (courses || []).map((course) => ({
+    id: course.cid,
+    courseName: course.name || `Course ${course.cid}`,
+    completion: 0,
+    enrolledStudents: 0,
+    completedStudents: 0,
+  }));
 }
 
 function normalizeJson(value) {

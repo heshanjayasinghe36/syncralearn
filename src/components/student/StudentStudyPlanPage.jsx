@@ -1,4 +1,13 @@
-import { Sparkles, Clock, Plus, X, CalendarDays, Pencil } from "lucide-react";
+import {
+  Sparkles,
+  Clock,
+  Plus,
+  X,
+  CalendarDays,
+  Pencil,
+  BookOpen,
+  CheckCircle2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
 
@@ -20,6 +29,29 @@ const initialAvailability = {
   Friday: [],
   Saturday: [],
   Sunday: [],
+};
+
+const getTodayDayName = () =>
+  new Date().toLocaleDateString("en-US", { weekday: "long" });
+
+const getTotalMinutes = (sessions) =>
+  sessions.reduce(
+    (total, session) => total + Number(session.durationMinutes || 0),
+    0
+  );
+
+const formatDuration = (minutes) => {
+  if (!minutes) {
+    return "0h";
+  }
+
+  const hours = minutes / 60;
+
+  if (Number.isInteger(hours)) {
+    return `${hours}h`;
+  }
+
+  return `${hours.toFixed(1)}h`;
 };
 
 function StudentStudyPlanPage() {
@@ -236,6 +268,35 @@ function StudentStudyPlanPage() {
   };
 
   const plan = studyPlan?.plan_json;
+  const todayName = getTodayDayName();
+  const dayPlans = days.map((day, index) => {
+    const dayPlan = plan?.days?.find((item) => item.day === day);
+    const sessions = dayPlan?.sessions || [];
+
+    return {
+      day,
+      index,
+      sessions,
+      totalMinutes: getTotalMinutes(sessions),
+    };
+  });
+
+  const todayIndex = days.indexOf(todayName);
+  const currentDayIndex = (() => {
+    const upcomingStudyDay = dayPlans.findIndex(
+      (dayPlan, index) => index >= todayIndex && dayPlan.sessions.length > 0
+    );
+
+    if (upcomingStudyDay >= 0) {
+      return upcomingStudyDay;
+    }
+
+    const firstStudyDay = dayPlans.findIndex(
+      (dayPlan) => dayPlan.sessions.length > 0
+    );
+
+    return firstStudyDay;
+  })();
 
   return (
     <div className="study-plan-page">
@@ -288,58 +349,125 @@ function StudentStudyPlanPage() {
               </div>
             </div>
 
-            <div className="study-plan-days-list">
-              {days.map((day) => {
-                const dayPlan = plan?.days?.find((item) => item.day === day);
-                const sessions = dayPlan?.sessions || [];
+            <div className="study-plan-journey">
+              <div className="study-plan-journey-header">
+                <div>
+                  <span className="study-plan-small-label">
+                    <CalendarDays size={13} />
+                    Learning Journey
+                  </span>
+                  <h3>Move through the week one focused stop at a time.</h3>
+                  {/* <p>Hover over a day card to see the full study sessions planned for that day.</p> */}
+                </div>
+              </div>
+
+              <div className="study-plan-days-list">
+              {dayPlans.map(({ day, index, sessions, totalMinutes }) => {
+                const isCurrent = index === currentDayIndex;
+                const isComplete = currentDayIndex >= 0 && index < currentDayIndex && sessions.length > 0;
+                const isEmpty = sessions.length === 0;
 
                 return (
-                  <div className="study-plan-day-card" key={day}>
-                    <div className="study-plan-day-header">
-                      <h3>
-                        <CalendarDays size={16} />
-                        {day}
-                      </h3>
-                      <span>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>
+                  <div
+                    className={[
+                      "study-plan-day-node",
+                      index % 2 === 0 ? "align-left" : "align-right",
+                      isCurrent ? "is-current" : "",
+                      isComplete ? "is-complete" : "",
+                      isEmpty ? "is-empty" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    key={day}
+                  >
+                    <div className="study-plan-day-rail-marker" aria-hidden="true">
+                      {isComplete ? (
+                        <CheckCircle2 size={18} />
+                      ) : (
+                        <BookOpen size={18} />
+                      )}
                     </div>
 
-                    {sessions.length === 0 ? (
-                      <p className="no-study-session">No study sessions planned.</p>
-                    ) : (
-                      <div className="study-plan-session-list">
-                        {sessions.map((session, index) => (
-                          <div
-                            className="study-plan-session-card"
-                            key={`${day}-${index}`}
-                          >
-                            <div className="study-plan-session-time">
-                              <Clock size={14} />
-                              <span>
-                                {session.startTime} - {session.endTime}
-                              </span>
-                            </div>
+                    <div className="study-plan-day-card" tabIndex={0}>
+                      {isCurrent ? (
+                        <span className="study-plan-current-badge">Current Focus</span>
+                      ) : null}
 
-                            <div className="study-plan-session-body">
-                              <div>
-                                <h4>{session.taskTitle}</h4>
-                                <p>{session.taskDescription}</p>
-                              </div>
-
-                              <div className="study-plan-session-tags">
-                                <span>{session.courseName}</span>
-                                <span>{session.activityType}</span>
-                                <span className={`priority-tag ${session.priority}`}>
-                                  {session.priority}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="study-plan-day-header">
+                        <h3>
+                          <CalendarDays size={16} />
+                          {day}
+                        </h3>
+                        <span>
+                          {sessions.length} session{sessions.length === 1 ? "" : "s"}
+                        </span>
                       </div>
-                    )}
+
+                      <div className="study-plan-day-overview">
+                        <div className="study-plan-day-icon">
+                          {isComplete ? <CheckCircle2 size={22} /> : <BookOpen size={22} />}
+                        </div>
+
+                        <div className="study-plan-day-copy">
+                          <h4>
+                            {sessions[0]?.taskTitle ||
+                              (isCurrent
+                                ? "Light recovery day"
+                                : "No study sessions planned")}
+                          </h4>
+                          <p>
+                            {sessions[0]?.taskDescription ||
+                              "Use this day to rest, revise lightly, or prepare for the next study block."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="study-plan-day-stats">
+                        <span>{formatDuration(totalMinutes)}</span>
+                        <span>{sessions[0]?.courseName || "Free day"}</span>
+                      </div>
+
+                      <div className="study-plan-day-details">
+                        {sessions.length === 0 ? (
+                          <p className="no-study-session">No study sessions planned.</p>
+                        ) : (
+                          <div className="study-plan-session-list">
+                            {sessions.map((session, sessionIndex) => (
+                              <div
+                                className="study-plan-session-card"
+                                key={`${day}-${sessionIndex}`}
+                              >
+                                <div className="study-plan-session-time">
+                                  <Clock size={14} />
+                                  <span>
+                                    {session.startTime} - {session.endTime}
+                                  </span>
+                                </div>
+
+                                <div className="study-plan-session-body">
+                                  <div>
+                                    <h4>{session.taskTitle}</h4>
+                                    <p>{session.taskDescription}</p>
+                                  </div>
+
+                                  <div className="study-plan-session-tags">
+                                    <span>{session.courseName}</span>
+                                    <span>{session.activityType}</span>
+                                    <span className={`priority-tag ${session.priority}`}>
+                                      {session.priority}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 );
               })}
+              </div>
             </div>
 
             {plan?.tips?.length > 0 ? (

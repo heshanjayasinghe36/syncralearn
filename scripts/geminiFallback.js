@@ -12,7 +12,7 @@ export async function generateContentWithFallback(ai, request) {
 
   for (const model of models) {
     try {
-      console.log(`Trying Gemini model: ${model}`);
+      // console.log(`Model: ${model}`);
 
       const response = await ai.models.generateContent({
         ...request,
@@ -22,7 +22,7 @@ export async function generateContentWithFallback(ai, request) {
       return { response, model };
     } catch (error) {
       lastError = error;
-      console.warn(`Gemini model failed (${model}): ${getErrorMessage(error)}`);
+      // console.warn(`Gemini model failed (${model}): ${getErrorMessage(error)}`);
 
       if (!isFallbackError(error)) {
         throw error;

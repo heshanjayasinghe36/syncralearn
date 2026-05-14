@@ -63,7 +63,7 @@ async function generateStudentStudyPlan(sid) {
   const text = response.text;
 
   if (!text) {
-    throw new Error("Gemini returned empty response.");
+    throw new Error("Empty response.");
   }
 
   let planJson;
@@ -71,8 +71,8 @@ async function generateStudentStudyPlan(sid) {
   try {
     planJson = JSON.parse(text);
   } catch {
-    console.error("Raw Gemini response:", text);
-    throw new Error("Gemini returned invalid JSON.");
+    console.error("Raw response:", text);
+    throw new Error("Invalid JSON response.");
   }
 
   validateStudyPlan(planJson);
@@ -83,7 +83,7 @@ async function generateStudentStudyPlan(sid) {
     model,
   });
 
-  console.log(`Study plan generated successfully using model: ${model}`);
+  console.log(`Study plan generated successfully`);
   return planJson;
 }
 

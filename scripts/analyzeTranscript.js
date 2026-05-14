@@ -59,7 +59,7 @@ ${transcript}
     contents: prompt,
   });
 
-  console.log(`Gemini transcript model used: ${model}`);
+  // console.log(`Gemini transcript model used: ${model}`);
 
   return JSON.parse(cleanJson(response.text));
 }
