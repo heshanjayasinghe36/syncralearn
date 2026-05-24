@@ -11,6 +11,7 @@
     "analyze:transcript": "node scripts/analyzeTranscript.js",
     "analyze:frames": "node scripts/analyzeFrames.js",
     "courses:update-style": "node scripts/updateCourseTeachingStyle.js",
+    "teachers:update-style": "node scripts/updateTeacherTeachingStyle.js",
     "teacher:insights": "node scripts/generateTeacherInsights.js"
   },
   "dependencies": {

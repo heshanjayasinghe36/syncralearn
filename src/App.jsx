@@ -370,6 +370,7 @@ export default function App() {
             session={session}
             onSignOut={handleSignOut}
             teacherProfile={teacherProfile}
+            onTeacherProfileUpdate={setTeacherProfile}
             theme={theme}
             onToggleTheme={toggleTheme}
           />

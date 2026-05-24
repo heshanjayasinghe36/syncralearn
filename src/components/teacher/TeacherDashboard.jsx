@@ -34,7 +34,14 @@ const sidebarItems = [
   },
 ];
 
-export default function TeacherDashboard({ session, onSignOut, teacherProfile, theme = "light", onToggleTheme }) {
+export default function TeacherDashboard({
+  session,
+  onSignOut,
+  teacherProfile,
+  onTeacherProfileUpdate,
+  theme = "light",
+  onToggleTheme,
+}) {
   const [activeView, setActiveView] = useState("overview");
   const [courseModalOpen, setCourseModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -189,7 +196,7 @@ export default function TeacherDashboard({ session, onSignOut, teacherProfile, t
           <TeacherSettingsPage
             session={session}
             teacherProfile={teacherProfile}
-            onProfileUpdate={() => {}}
+            onProfileUpdate={onTeacherProfileUpdate}
             theme={theme}
             onToggleTheme={onToggleTheme}
           />

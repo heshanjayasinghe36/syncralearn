@@ -15,11 +15,19 @@ import {
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
 import { getVarkStyleKeys, getVarkStyleLabel } from "../../lib/vark";
+import {
+  clearPendingStripeCheckout,
+  clearStripeCheckoutReturnParams,
+  confirmStripeEnrollment,
+  getPendingStripeCheckout,
+  getStripeCheckoutReturnParams,
+} from "../../lib/stripeCheckout";
 import StudentCourseLearningPage from "./StudentCourseLearningPage";
 import StudentCoursesPage from "./StudentCoursesPage";
 import StudentCoursePreviewPage from "./StudentCoursePreviewPage";
 import StudentSettingsPage from "./StudentSettingsPage";
 import StudentStudyPlanPage from "./StudentStudyPlanPage";
+import TeacherProfilePage from "./TeacherProfilePage";
 
 const sidebarItems = [
   {
@@ -52,11 +60,15 @@ export default function StudentDashboard({
   const [suggestedCourses, setSuggestedCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [courseReturnView, setCourseReturnView] = useState("dashboard");
+  const [teacherProfileReturnView, setTeacherProfileReturnView] =
+    useState("dashboard");
   const [savedCourseLessonSelection, setSavedCourseLessonSelection] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [loadingEnrolledCourses, setLoadingEnrolledCourses] = useState(false);
   const [searchCatalogCourses, setSearchCatalogCourses] = useState([]);
+  const [searchCatalogTeachers, setSearchCatalogTeachers] = useState([]);
   const [loadingSearchCatalog, setLoadingSearchCatalog] = useState(false);
   const [suggestionMessage, setSuggestionMessage] = useState("");
   const [enrolledCoursesMessage, setEnrolledCoursesMessage] = useState("");
@@ -69,11 +81,14 @@ export default function StudentDashboard({
   const [reviewComment, setReviewComment] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [courseRefreshKey, setCourseRefreshKey] = useState(0);
 
   const profileMenuRef = useRef(null);
   const notificationMenuRef = useRef(null);
   const searchRef = useRef(null);
   const streakSyncedStudentIdRef = useRef(null);
+  const restoredStripeCheckoutRef = useRef(false);
+  const processedStripeReturnRef = useRef("");
 
   const effectiveStudentProfile = localStudentProfile || studentProfile;
 
@@ -92,6 +107,53 @@ export default function StudentDashboard({
   function handleStudentProfileUpdate(nextProfile) {
     setLocalStudentProfile(nextProfile);
     onStudentProfileUpdate?.(nextProfile);
+  }
+
+  function refreshCourseCollections(enrolledCourseId = null, options = {}) {
+    if (enrolledCourseId) {
+      setSelectedCourse((current) =>
+        current && Number(current.id || current.cid) === Number(enrolledCourseId)
+          ? {
+              ...current,
+              isEnrolled: true,
+            }
+          : current
+      );
+    }
+
+    setCourseRefreshKey((current) => current + 1);
+
+    if (options.redirectToDashboard) {
+      setSelectedCourse(null);
+      setCourseReturnView("dashboard");
+      setActiveView("dashboard");
+    }
+  }
+
+  function openTeacherProfile(course, returnView = activeView) {
+    if (!course?.teacherId) {
+      return;
+    }
+
+    setSelectedTeacher({
+      id: course.teacherId,
+      name: course.teacherName || "Teacher",
+    });
+    setSelectedCourse(null);
+    setTeacherProfileReturnView(returnView);
+    setProfileMenuOpen(false);
+    setSearchOpen(false);
+    setActiveView("teacher-profile");
+  }
+
+  function openCourseFromTeacherProfile(course) {
+    const enrolledCourse = enrolledCourses.find(
+      (currentCourse) => Number(currentCourse.id) === Number(course.id)
+    );
+
+    setCourseReturnView("teacher-profile");
+    setSelectedCourse(enrolledCourse || course);
+    setActiveView(enrolledCourse ? "enrolled-course-preview" : "course-preview");
   }
 
   useEffect(() => {
@@ -195,7 +257,7 @@ export default function StudentDashboard({
     return () => {
       ignore = true;
     };
-  }, [studentId]);
+  }, [studentId, courseRefreshKey]);
 
   useEffect(() => {
     function handlePointerDown(event) {
@@ -266,6 +328,74 @@ export default function StudentDashboard({
   }, [studentId]);
 
   useEffect(() => {
+    async function processStripeReturn() {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      const checkoutReturn = getStripeCheckoutReturnParams();
+
+      if (!checkoutReturn?.status) {
+        return;
+      }
+
+      const returnKey = [
+        checkoutReturn.status,
+        checkoutReturn.courseId || "",
+        checkoutReturn.sessionId || "",
+      ].join(":");
+
+      if (processedStripeReturnRef.current === returnKey) {
+        return;
+      }
+
+      processedStripeReturnRef.current = returnKey;
+
+      if (checkoutReturn.status === "cancelled") {
+        clearPendingStripeCheckout();
+        clearStripeCheckoutReturnParams();
+        setSelectedCourse(null);
+        setCourseReturnView("dashboard");
+        setActiveView("dashboard");
+        return;
+      }
+
+      if (
+        checkoutReturn.status !== "success" ||
+        !checkoutReturn.sessionId ||
+        !checkoutReturn.courseId
+      ) {
+        return;
+      }
+
+      const { data, error } = await confirmStripeEnrollment({
+        courseId: checkoutReturn.courseId,
+        sessionId: checkoutReturn.sessionId,
+      });
+
+      if (error) {
+        console.warn("Stripe enrollment confirmation failed:", error.message);
+        processedStripeReturnRef.current = "";
+        return;
+      }
+
+      if (data?.success) {
+        clearPendingStripeCheckout();
+        clearStripeCheckoutReturnParams();
+        setSelectedCourse(null);
+        setCourseReturnView("dashboard");
+        setActiveView("dashboard");
+        setCourseRefreshKey((current) => current + 1);
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 250);
+      }
+    }
+
+    void processStripeReturn();
+  }, []);
+
+  useEffect(() => {
     let ignore = false;
 
     async function loadEnrolledCourses() {
@@ -303,6 +433,10 @@ export default function StudentDashboard({
             status,
             img_url,
             intro_vid_url,
+            tid,
+            teacher (
+              full_name
+            ),
             review (
               rating
             )
@@ -381,6 +515,10 @@ export default function StudentDashboard({
           status,
           img_url,
           intro_vid_url,
+          tid,
+          teacher (
+            full_name
+          ),
           review (
             rating
           )
@@ -425,7 +563,7 @@ export default function StudentDashboard({
     return () => {
       ignore = true;
     };
-  }, [enrolledCourses, learningStyle]);
+  }, [enrolledCourses, learningStyle, courseRefreshKey]);
 
   useEffect(() => {
     let ignore = false;
@@ -433,42 +571,52 @@ export default function StudentDashboard({
     async function loadSearchCatalog() {
       if (!supabase) {
         setSearchCatalogCourses([]);
+        setSearchCatalogTeachers([]);
         return;
       }
 
       setLoadingSearchCatalog(true);
 
-      const { data, error } = await supabase
-        .from("course")
-        .select(
+      const [
+        { data: courseData, error: courseError },
+        { data: teacherData, error: teacherError },
+      ] = await Promise.all([
+        supabase
+          .from("course")
+          .select(
+            `
+            cid,
+            name,
+            description,
+            teachingstyle,
+            amount,
+            level,
+            status,
+            img_url,
+            intro_vid_url,
+            tid,
+            teacher (
+              full_name
+            ),
+            review (
+              rating
+            )
           `
-          cid,
-          name,
-          description,
-          teachingstyle,
-          amount,
-          level,
-          status,
-          img_url,
-          intro_vid_url,
-          tid,
-          teacher (
-            full_name
-          ),
-          review (
-            rating
           )
-        `
-        )
-        .ilike("status", "active")
-        .order("cid", { ascending: false });
+          .ilike("status", "active")
+          .order("cid", { ascending: false }),
+        supabase
+          .from("teacher")
+          .select("tid, full_name, academic_qualification, field_of_study, mts")
+          .order("full_name", { ascending: true }),
+      ]);
 
       if (ignore) {
         return;
       }
 
-      if (error) {
-        console.warn("Search catalog load failed:", error.message);
+      if (courseError) {
+        console.warn("Search catalog load failed:", courseError.message);
         setSearchCatalogCourses([]);
       } else {
         const enrolledCourseMap = new Map(
@@ -476,7 +624,7 @@ export default function StudentDashboard({
         );
 
         setSearchCatalogCourses(
-          (data || [])
+          (courseData || [])
             .map((row) => {
               const enrolledCourse = enrolledCourseMap.get(row.cid);
 
@@ -493,6 +641,13 @@ export default function StudentDashboard({
         );
       }
 
+      if (teacherError) {
+        console.warn("Teacher search catalog load failed:", teacherError.message);
+        setSearchCatalogTeachers([]);
+      } else {
+        setSearchCatalogTeachers(teacherData || []);
+      }
+
       setLoadingSearchCatalog(false);
     }
 
@@ -501,10 +656,51 @@ export default function StudentDashboard({
     return () => {
       ignore = true;
     };
-  }, [enrolledCourses]);
+  }, [enrolledCourses, courseRefreshKey]);
+
+  useEffect(() => {
+    if (restoredStripeCheckoutRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const checkoutReturn = getStripeCheckoutReturnParams();
+    const pendingCheckout = getPendingStripeCheckout();
+
+    if (!checkoutReturn?.courseId || checkoutReturn.status === "success") {
+      return;
+    }
+
+    const pendingCourseId = Number(checkoutReturn.courseId || 0);
+
+    if (!pendingCourseId) {
+      return;
+    }
+
+    const pendingCourse =
+      enrolledCourses.find((course) => Number(course.id) === pendingCourseId) ||
+      searchCatalogCourses.find((course) => Number(course.id) === pendingCourseId) ||
+      suggestedCourses.find((course) => Number(course.id) === pendingCourseId) ||
+      pendingCheckout?.course ||
+      null;
+
+    if (!pendingCourse) {
+      return;
+    }
+
+    restoredStripeCheckoutRef.current = true;
+    setCourseReturnView(pendingCheckout?.returnView || "dashboard");
+    setSelectedCourse(pendingCourse);
+    setActiveView("course-preview");
+  }, [enrolledCourses, searchCatalogCourses, suggestedCourses]);
 
   const searchResults = getStudentSearchResults(
     searchCatalogCourses,
+    searchQuery,
+    learningStyle
+  );
+  const teacherSearchResults = getStudentTeacherSearchResults(
+    searchCatalogCourses,
+    searchCatalogTeachers,
     searchQuery,
     learningStyle
   );
@@ -515,6 +711,17 @@ export default function StudentDashboard({
     setSearchOpen(false);
     setSearchQuery("");
     setActiveView(course.isEnrolled ? "enrolled-course-preview" : "course-preview");
+  }
+
+  function openTeacherFromSearch(teacher) {
+    openTeacherProfile(
+      {
+        teacherId: teacher.teacherId,
+        teacherName: teacher.teacherName,
+      },
+      activeView
+    );
+    setSearchQuery("");
   }
 
   if (activeView === "enrolled-course-preview" && selectedCourse) {
@@ -563,6 +770,7 @@ export default function StudentDashboard({
               type="button"
               onClick={() => {
                 setSelectedCourse(null);
+                setSelectedTeacher(null);
                 setProfileMenuOpen(false);
                 setActiveView(id);
               }}
@@ -588,6 +796,7 @@ export default function StudentDashboard({
           }`}
           onClick={() => {
             setSelectedCourse(null);
+            setSelectedTeacher(null);
             setProfileMenuOpen(false);
             setActiveView("settings");
           }}
@@ -615,50 +824,97 @@ export default function StudentDashboard({
             />
 
             {searchOpen ? (
-              <div className="student-search-popup" role="listbox">
+              <div className="student-search-popup" role="dialog">
                 {loadingSearchCatalog ? (
                   <p className="student-search-state">Loading courses...</p>
                 ) : searchCatalogCourses.length === 0 ? (
                   <p className="student-search-state">No active courses available.</p>
-                ) : searchResults.length === 0 ? (
-                  <p className="student-search-state">
-                    No courses match that course or teacher name.
-                  </p>
                 ) : (
-                  <div className="student-search-results">
-                    {searchResults.map((course) => (
-                      <button
-                        key={`search-${course.id}`}
-                        type="button"
-                        className="student-search-result"
-                        onClick={() => openCourseFromSearch(course)}
-                      >
-                        <div className="student-search-result-visual">
-                          {course.imgUrl ? (
-                            <img src={course.imgUrl} alt="" />
-                          ) : (
-                            <BookOpen aria-hidden="true" />
-                          )}
-                        </div>
+                  <div className="student-search-panel">
+                    <section className="student-search-column">
+                      <div className="student-search-heading">
+                        <span>Courses</span>
+                        <strong>{searchResults.length}</strong>
+                      </div>
 
-                        <div className="student-search-result-body">
-                          <div className="student-search-result-topline">
-                            <span>{course.levelLabel}</span>
-                            {course.isEnrolled ? (
-                              <strong>Enrolled</strong>
-                            ) : hasMatchingLearningStyle(
-                                getVarkStyleKeys(learningStyle),
-                                course.teachingstyle
-                              ) ? (
-                              <strong>Style match</strong>
-                            ) : null}
-                          </div>
+                      {searchResults.length === 0 ? (
+                        <p className="student-search-state student-search-column-state">
+                          No courses match your search.
+                        </p>
+                      ) : (
+                        <div className="student-search-results">
+                          {searchResults.map((course) => (
+                            <button
+                              key={`search-${course.id}`}
+                              type="button"
+                              className="student-search-result"
+                              onClick={() => openCourseFromSearch(course)}
+                            >
+                              <div className="student-search-result-visual">
+                                {course.imgUrl ? (
+                                  <img src={course.imgUrl} alt="" />
+                                ) : (
+                                  <BookOpen aria-hidden="true" />
+                                )}
+                              </div>
 
-                          <h3>{course.name}</h3>
-                          <p>{course.teacherName || "Unknown teacher"}</p>
+                              <div className="student-search-result-body">
+                                <div className="student-search-result-topline">
+                                  <span>{course.levelLabel}</span>
+                                  {course.isEnrolled ? (
+                                    <strong>Enrolled</strong>
+                                  ) : hasMatchingLearningStyle(
+                                      getVarkStyleKeys(learningStyle),
+                                      course.teachingstyle
+                                    ) ? (
+                                    <strong>Style match</strong>
+                                  ) : null}
+                                </div>
+
+                                <h3>{course.name}</h3>
+                                <p>{course.teacherName || "Unknown teacher"}</p>
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                      </button>
-                    ))}
+                      )}
+                    </section>
+
+                    <section className="student-search-column student-search-teacher-column">
+                      <div className="student-search-heading">
+                        <span>Teachers</span>
+                        <strong>{teacherSearchResults.length}</strong>
+                      </div>
+
+                      {teacherSearchResults.length === 0 ? (
+                        <p className="student-search-state student-search-column-state">
+                          No related teachers found.
+                        </p>
+                      ) : (
+                        <div className="student-search-teacher-results">
+                          {teacherSearchResults.map((teacher) => (
+                            <button
+                              key={`teacher-search-${teacher.teacherId}`}
+                              type="button"
+                              className="student-search-teacher-result"
+                              onClick={() => openTeacherFromSearch(teacher)}
+                            >
+                              <span className="student-search-teacher-avatar">
+                                {getInitials(teacher.teacherName)}
+                              </span>
+                              <span className="student-search-teacher-body">
+                                <strong>{teacher.teacherName}</strong>
+                                <small>
+                                  {teacher.courseCount} active{" "}
+                                  {teacher.courseCount === 1 ? "course" : "courses"}
+                                </small>
+                                <span>{teacher.topCourseName}</span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </section>
                   </div>
                 )}
               </div>
@@ -800,10 +1056,23 @@ export default function StudentDashboard({
               course={selectedCourse}
               session={session}
               studentProfile={effectiveStudentProfile}
+              returnView={courseReturnView}
+              onEnrollmentComplete={refreshCourseCollections}
               onBack={() => {
                 setSelectedCourse(null);
                 setActiveView(courseReturnView);
               }}
+            />
+          ) : activeView === "teacher-profile" && selectedTeacher ? (
+            <TeacherProfilePage
+              teacherId={selectedTeacher.id}
+              initialTeacherName={selectedTeacher.name}
+              enrolledCourses={enrolledCourses}
+              onBack={() => {
+                setSelectedTeacher(null);
+                setActiveView(teacherProfileReturnView);
+              }}
+              onOpenCourse={openCourseFromTeacherProfile}
             />
           ) : activeView === "courses" ? (
             <StudentCoursesPage
@@ -820,6 +1089,7 @@ export default function StudentDashboard({
                 setSelectedCourse(course);
                 setActiveView("enrolled-course-preview");
               }}
+              onOpenTeacher={(course) => openTeacherProfile(course, "courses")}
               onAddReview={(course) => {
                 setReviewPopup({
                   courseId: course.cid,
@@ -863,6 +1133,7 @@ export default function StudentDashboard({
                     setSelectedCourse(course);
                     setActiveView("enrolled-course-preview");
                   }}
+                  onOpenTeacher={(course) => openTeacherProfile(course, "dashboard")}
                   onAddReview={(course) => {
                     setReviewPopup({
                       courseId: course.cid,
@@ -886,6 +1157,7 @@ export default function StudentDashboard({
                     setSelectedCourse(course);
                     setActiveView("course-preview");
                   }}
+                  onOpenTeacher={(course) => openTeacherProfile(course, "dashboard")}
                 />
               </div>
 
@@ -1080,6 +1352,7 @@ function CourseSection({
   loadingText,
   message,
   onOpenCourse,
+  onOpenTeacher,
   onAddReview,
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -1121,6 +1394,7 @@ function CourseSection({
               course={course}
               forcePreviewDetails={forcePreviewDetails}
               onOpenCourse={onOpenCourse}
+              onOpenTeacher={onOpenTeacher}
               onAddReview={onAddReview}
             />
           ))}
@@ -1130,7 +1404,13 @@ function CourseSection({
   );
 }
 
-function CourseCard({ course, forcePreviewDetails = false, onOpenCourse, onAddReview }) {
+function CourseCard({
+  course,
+  forcePreviewDetails = false,
+  onOpenCourse,
+  onOpenTeacher,
+  onAddReview,
+}) {
   const showPreviewDetails = forcePreviewDetails || !course.isEnrolled;
 
   return (
@@ -1159,6 +1439,22 @@ function CourseCard({ course, forcePreviewDetails = false, onOpenCourse, onAddRe
         <div>
           <p>{course.levelLabel}</p>
           <h3>{course.name}</h3>
+          {course.teacherId && onOpenTeacher ? (
+            <button
+              type="button"
+              className="student-course-teacher"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenTeacher(course);
+              }}
+            >
+              {course.teacherName || "Unknown teacher"}
+            </button>
+          ) : (
+            <span className="student-course-teacher">
+              {course.teacherName || "Unknown teacher"}
+            </span>
+          )}
         </div>
 
         {showPreviewDetails && course.description ? (
@@ -1337,6 +1633,145 @@ function getCourseSearchScore(course, normalizedQuery, studentStyleKeys) {
   }
 
   return score;
+}
+
+function getStudentTeacherSearchResults(courses, teachers, query, learningStyle) {
+  const normalizedQuery = query.trim().toLowerCase();
+  const studentStyleKeys = getVarkStyleKeys(learningStyle);
+  const teachersById = new Map();
+
+  for (const teacherRow of teachers || []) {
+    if (!teacherRow?.tid) {
+      continue;
+    }
+
+    teachersById.set(teacherRow.tid, {
+      teacherId: teacherRow.tid,
+      teacherName: teacherRow.full_name || "Unknown teacher",
+      teacherSearchText: [
+        teacherRow.full_name,
+        teacherRow.field_of_study,
+        teacherRow.academic_qualification,
+        teacherRow.mts,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase(),
+      courses: [],
+      matchingCourseCount: 0,
+      styleMatchCount: 0,
+      enrolledCourseCount: 0,
+      topCourseName: "No active courses yet",
+    });
+  }
+
+  for (const course of courses) {
+    if (!course.teacherId) {
+      continue;
+    }
+
+    const teacher = teachersById.get(course.teacherId) || {
+      teacherId: course.teacherId,
+      teacherName: course.teacherName || "Unknown teacher",
+      teacherSearchText: course.teacherName || "",
+      courses: [],
+      matchingCourseCount: 0,
+      styleMatchCount: 0,
+      enrolledCourseCount: 0,
+      topCourseName: course.name,
+    };
+
+    teacher.courses.push(course);
+    teacher.topCourseName = teacher.courses[0]?.name || teacher.topCourseName;
+
+    if (matchesSearchText(course.name, normalizedQuery)) {
+      teacher.matchingCourseCount++;
+    }
+
+    if (hasMatchingLearningStyle(studentStyleKeys, course.teachingstyle)) {
+      teacher.styleMatchCount++;
+    }
+
+    if (course.isEnrolled) {
+      teacher.enrolledCourseCount++;
+    }
+
+    teachersById.set(course.teacherId, teacher);
+  }
+
+  return [...teachersById.values()]
+    .map((teacher) => ({
+      ...teacher,
+      courseCount: teacher.courses.length,
+      searchScore: getTeacherSearchScore(teacher, normalizedQuery),
+    }))
+    .filter((teacher) => teacher.searchScore > Number.NEGATIVE_INFINITY)
+    .sort((left, right) => {
+      if (right.searchScore !== left.searchScore) {
+        return right.searchScore - left.searchScore;
+      }
+
+      return left.teacherName.localeCompare(right.teacherName);
+    })
+    .slice(0, 8);
+}
+
+function getTeacherSearchScore(teacher, normalizedQuery) {
+  const teacherName = String(teacher.teacherName || "").toLowerCase();
+  const teacherSearchText = String(teacher.teacherSearchText || "").toLowerCase();
+  const courseCount = teacher.courseCount ?? teacher.courses?.length ?? 0;
+
+  if (!normalizedQuery) {
+    if (courseCount === 0) {
+      return Number.NEGATIVE_INFINITY;
+    }
+
+    return teacher.styleMatchCount * 220 + teacher.enrolledCourseCount * 90 + courseCount * 20;
+  }
+
+  const teacherExact = teacherName === normalizedQuery;
+  const teacherStartsWith = teacherName.startsWith(normalizedQuery);
+  const teacherIncludes = teacherName.includes(normalizedQuery);
+  const teacherProfileIncludes = teacherSearchText.includes(normalizedQuery);
+  const courseNameMatches = teacher.courses.some((course) =>
+    matchesSearchText(course.name, normalizedQuery)
+  );
+
+  if (
+    !teacherExact &&
+    !teacherStartsWith &&
+    !teacherIncludes &&
+    !teacherProfileIncludes &&
+    !courseNameMatches
+  ) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  let score = 0;
+
+  if (teacherExact) {
+    score += 1400;
+  } else if (teacherStartsWith) {
+    score += 1000;
+  } else if (teacherIncludes) {
+    score += 820;
+  } else if (teacherProfileIncludes) {
+    score += 520;
+  }
+
+  score += teacher.matchingCourseCount * 180;
+  score += teacher.styleMatchCount * 80;
+  score += teacher.enrolledCourseCount * 60;
+  score += courseCount * 10;
+
+  return score;
+}
+
+function matchesSearchText(value, normalizedQuery) {
+  return (
+    Boolean(normalizedQuery) &&
+    String(value || "").toLowerCase().includes(normalizedQuery)
+  );
 }
 
 function formatLearningStyle(value) {

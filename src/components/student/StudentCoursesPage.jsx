@@ -6,6 +6,7 @@ export default function StudentCoursesPage({
   loading,
   message,
   onOpenCourse,
+  onOpenTeacher,
   onAddReview,
 }) {
   return (
@@ -31,6 +32,7 @@ export default function StudentCoursesPage({
               key={course.id}
               course={course}
               onOpenCourse={onOpenCourse}
+              onOpenTeacher={onOpenTeacher}
               onAddReview={onAddReview}
             />
           ))}
@@ -40,7 +42,12 @@ export default function StudentCoursesPage({
   );
 }
 
-function StudentEnrolledCourseCard({ course, onOpenCourse, onAddReview }) {
+function StudentEnrolledCourseCard({
+  course,
+  onOpenCourse,
+  onOpenTeacher,
+  onAddReview,
+}) {
   return (
     <article
       className="student-course-card"
@@ -67,6 +74,22 @@ function StudentEnrolledCourseCard({ course, onOpenCourse, onAddReview }) {
         <div>
           <p>{course.levelLabel}</p>
           <h3>{course.name}</h3>
+          {course.teacherId && onOpenTeacher ? (
+            <button
+              type="button"
+              className="student-course-teacher"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenTeacher(course);
+              }}
+            >
+              {course.teacherName || "Unknown teacher"}
+            </button>
+          ) : (
+            <span className="student-course-teacher">
+              {course.teacherName || "Unknown teacher"}
+            </span>
+          )}
         </div>
 
         <div className="student-course-progress-block">

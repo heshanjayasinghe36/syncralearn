@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -11,11 +11,21 @@ import {
   X,
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
+import {
+  clearPendingStripeCheckout,
+  clearStripeCheckoutReturnParams,
+  confirmStripeEnrollment,
+  createStripeCheckoutSession,
+  getStripeCheckoutReturnParams,
+  setPendingStripeCheckout,
+} from "../../lib/stripeCheckout";
 
 export default function StudentCoursePreviewPage({
   course,
   session,
   studentProfile,
+  returnView = "dashboard",
+  onEnrollmentComplete,
   onBack,
 }) {
   const [courseDetails, setCourseDetails] = useState(() => course || null);
@@ -38,6 +48,7 @@ export default function StudentCoursePreviewPage({
   );
   const amountLabel = formatCourseAmount(previewCourse?.amount);
   const isFree = amountLabel === "Free";
+  const processedStripeSessionRef = useRef(null);
 
   useEffect(() => {
     let ignore = false;
@@ -172,10 +183,18 @@ export default function StudentCoursePreviewPage({
 
   useEffect(() => {
     let ignore = false;
+    const checkoutReturn = getStripeCheckoutReturnParams();
+    const isPendingStripeSuccessReturn =
+      checkoutReturn?.status === "success" &&
+      String(checkoutReturn?.courseId || "") === String(courseId);
 
     async function checkEnrollment() {
       if (!courseId || !supabase) {
         setIsEnrolled(false);
+        return;
+      }
+
+      if (isPendingStripeSuccessReturn) {
         return;
       }
 
@@ -205,7 +224,7 @@ export default function StudentCoursePreviewPage({
       }
 
       if (!error) {
-        setIsEnrolled(Boolean(data));
+        setIsEnrolled((current) => current || Boolean(data));
       }
 
       setCheckingEnrollment(false);
@@ -218,6 +237,76 @@ export default function StudentCoursePreviewPage({
     };
   }, [courseId, session, studentProfile]);
 
+  useEffect(() => {
+    let ignore = false;
+    const checkoutReturn = getStripeCheckoutReturnParams();
+
+    async function handleStripeReturn() {
+      if (!checkoutReturn || !courseId) {
+        return;
+      }
+
+      if (String(checkoutReturn.courseId || "") !== String(courseId)) {
+        return;
+      }
+
+      if (checkoutReturn.status === "cancelled") {
+        setEnrollmentMessage(
+          "Stripe test payment was cancelled. Enrollment was not completed."
+        );
+        clearPendingStripeCheckout();
+        clearStripeCheckoutReturnParams();
+        return;
+      }
+
+      if (
+        checkoutReturn.status !== "success" ||
+        !checkoutReturn.sessionId ||
+        processedStripeSessionRef.current === checkoutReturn.sessionId
+      ) {
+        return;
+      }
+
+      processedStripeSessionRef.current = checkoutReturn.sessionId;
+      setEnrolling(true);
+      setEnrollmentMessage("Verifying Stripe test payment...");
+
+      const { data, error } = await confirmStripeEnrollment({
+        courseId,
+        sessionId: checkoutReturn.sessionId,
+      });
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        setEnrollmentMessage(`Payment confirmation failed: ${error.message}`);
+        setEnrolling(false);
+        return;
+      }
+
+      if (data?.success) {
+        setIsEnrolled(true);
+        setEnrollmentMessage("Test payment successful. Enrollment confirmed.");
+        setEnrollModalOpen(false);
+        clearPendingStripeCheckout();
+        clearStripeCheckoutReturnParams();
+        onEnrollmentComplete?.(courseId, {
+          redirectToDashboard: true,
+        });
+      }
+
+      setEnrolling(false);
+    }
+
+    void handleStripeReturn();
+
+    return () => {
+      ignore = true;
+    };
+  }, [courseId, onEnrollmentComplete]);
+
   async function handleConfirmEnrollment() {
     if (!courseId) {
       setEnrollmentMessage("Course ID was not found.");
@@ -229,14 +318,57 @@ export default function StudentCoursePreviewPage({
       return;
     }
 
-    setEnrolling(true);
-    setEnrollmentMessage("");
-
     const sid = await resolveStudentId({ studentProfile, session });
 
     if (!sid) {
       setEnrollmentMessage("Student profile was not found.");
-      setEnrolling(false);
+      return;
+    }
+
+    setEnrolling(true);
+    setEnrollmentMessage("");
+
+    if (!isFree) {
+      const returnUrl =
+        typeof window === "undefined"
+          ? ""
+          : `${window.location.origin}${window.location.pathname}${window.location.search}`;
+
+      const { data, error } = await createStripeCheckoutSession({
+        courseId,
+        returnUrl,
+      });
+
+      if (error) {
+        setEnrollmentMessage(`Payment start failed: ${error.message}`);
+        setEnrolling(false);
+        return;
+      }
+
+      if (data?.alreadyEnrolled) {
+        setIsEnrolled(true);
+        setEnrollmentMessage("You are already enrolled in this course.");
+        setEnrolling(false);
+        setEnrollModalOpen(false);
+        onEnrollmentComplete?.(courseId, {
+          redirectToDashboard: true,
+        });
+        return;
+      }
+
+      if (!data?.checkoutUrl) {
+        setEnrollmentMessage("Stripe checkout URL was not returned.");
+        setEnrolling(false);
+        return;
+      }
+
+      setPendingStripeCheckout({
+        courseId,
+        returnView,
+        course,
+      });
+
+      window.location.assign(data.checkoutUrl);
       return;
     }
 
@@ -263,6 +395,9 @@ export default function StudentCoursePreviewPage({
     setEnrollmentMessage("Enrollment confirmed.");
     setEnrolling(false);
     setEnrollModalOpen(false);
+    onEnrollmentComplete?.(courseId, {
+      redirectToDashboard: true,
+    });
   }
 
   return (
@@ -380,6 +515,10 @@ export default function StudentCoursePreviewPage({
                 You are already enrolled in this course.
               </p>
             ) : null}
+
+            {!enrollModalOpen && enrollmentMessage ? (
+              <p className="student-preview-message">{enrollmentMessage}</p>
+            ) : null}
           </article>
 
           {/* <article className="student-preview-stats-card">
@@ -442,6 +581,7 @@ export default function StudentCoursePreviewPage({
           amountLabel={amountLabel}
           isFree={isFree}
           lessonCount={lessons.length}
+          courseAmount={previewCourse?.amount}
           message={enrollmentMessage}
           enrolling={enrolling}
           onClose={() => {
@@ -460,6 +600,7 @@ function EnrollmentModal({
   course,
   amountLabel,
   isFree,
+  courseAmount,
   lessonCount,
   message,
   enrolling,
@@ -512,6 +653,13 @@ function EnrollmentModal({
           </div>
         </div>
 
+        {!isFree && Number(courseAmount) > 0 ? (
+          <p className="student-enroll-message">
+            You will be redirected to Stripe Checkout in test mode. Use card
+            4242 4242 4242 4242 with any future expiry date and any CVC.
+          </p>
+        ) : null}
+
         {message ? <p className="student-enroll-message">{message}</p> : null}
 
         <button
@@ -520,7 +668,13 @@ function EnrollmentModal({
           onClick={onConfirm}
           disabled={enrolling}
         >
-          {enrolling ? "Confirming..." : "Confirm Enrollment"}
+          {enrolling
+            ? isFree
+              ? "Confirming..."
+              : "Redirecting..."
+            : isFree
+              ? "Confirm Enrollment"
+              : "Proceed to Test Payment"}
         </button>
       </article>
     </div>

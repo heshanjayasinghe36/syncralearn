@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ShieldCheck,
   ChevronDown,
   Mail,
   Moon,
@@ -137,6 +138,7 @@ export default function TeacherSettingsPage({
     teacherProfile?.linkedin_url || ""
   );
   const [githubUrl, setGithubUrl] = useState(teacherProfile?.github_url || "");
+  const [about, setAbout] = useState(teacherProfile?.about || "");
   const [selectedTeachingStyle, setSelectedTeachingStyle] = useState(
     getValidVarkOptionValue(teacherProfile?.mts || "")
   );
@@ -157,6 +159,9 @@ export default function TeacherSettingsPage({
   const selectedTeachingStyleOption =
     VARK_OPTIONS.find((option) => option.value === selectedTeachingStyle) ||
     null;
+  const isTeacherVerified =
+    String(teacherProfile?.verification_status || "").toLowerCase() ===
+      "verified" || Boolean(teacherProfile?.verified_at);
   const isBusy = savingProfile || savingTeachingStyle;
 
   useEffect(() => {
@@ -189,6 +194,7 @@ export default function TeacherSettingsPage({
     const cleanFullName = fullName.trim();
     const cleanLinkedinUrl = linkedinUrl.trim();
     const cleanGithubUrl = githubUrl.trim();
+    const cleanAbout = about.trim();
 
     if (!cleanFullName) {
       setProfileMessage("Full name is required.");
@@ -218,6 +224,7 @@ export default function TeacherSettingsPage({
         full_name: cleanFullName,
         linkedin_url: cleanLinkedinUrl || null,
         github_url: cleanGithubUrl || null,
+        about: cleanAbout || null,
       })
       .select("*");
 
@@ -238,6 +245,7 @@ export default function TeacherSettingsPage({
       full_name: cleanFullName,
       linkedin_url: cleanLinkedinUrl || null,
       github_url: cleanGithubUrl || null,
+      about: cleanAbout || null,
     });
     setProfileMessage("Profile saved.");
     setSavingProfile(false);
@@ -307,14 +315,23 @@ export default function TeacherSettingsPage({
 
       <div className="student-settings-grid">
         <form className="student-settings-card" onSubmit={handleSaveProfile}>
-          <div className="student-settings-card-heading">
-            <span>
-              <UserRound aria-hidden="true" />
-            </span>
-            <div>
-              <p>Profile</p>
-              <h3>Professional details</h3>
+          <div className="teacher-settings-card-top">
+            <div className="student-settings-card-heading">
+              <span>
+                <UserRound aria-hidden="true" />
+              </span>
+              <div>
+                <p>Profile</p>
+                <h3>Professional details</h3>
+              </div>
             </div>
+
+            {isTeacherVerified ? (
+              <span className="teacher-verified-badge">
+                <ShieldCheck aria-hidden="true" />
+                <span>Verified</span>
+              </span>
+            ) : null}
           </div>
 
           <div className="student-settings-profile-fields">
@@ -338,6 +355,20 @@ export default function TeacherSettingsPage({
                 <Mail aria-hidden="true" />
                 <input type="email" value={email} readOnly />
               </div>
+            </label>
+
+            <label className="student-settings-field student-settings-field-wide">
+              <span>About</span>
+              <textarea
+                value={about}
+                onChange={(event) => {
+                  setAbout(event.target.value);
+                  setProfileMessage("");
+                }}
+                placeholder="Share a short professional bio for learners."
+                rows={4}
+                disabled={isBusy}
+              />
             </label>
 
             <label className="student-settings-field">
