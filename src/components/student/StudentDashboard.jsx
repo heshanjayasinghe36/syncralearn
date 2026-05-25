@@ -1150,9 +1150,7 @@ export default function StudentDashboard({
             {searchOpen ? (
               <div className="student-search-popup" role="dialog">
                 {loadingSearchCatalog ? (
-                  <p className="student-search-state">Loading courses...</p>
-                ) : searchCatalogCourses.length === 0 ? (
-                  <p className="student-search-state">No active courses available.</p>
+                  <p className="student-search-state">Loading search results...</p>
                 ) : (
                   <div className="student-search-panel">
                     <section className="student-search-column">
@@ -1163,7 +1161,9 @@ export default function StudentDashboard({
 
                       {searchResults.length === 0 ? (
                         <p className="student-search-state student-search-column-state">
-                          No courses match your search.
+                          {searchCatalogCourses.length === 0
+                            ? "No active courses available."
+                            : "No courses match your search."}
                         </p>
                       ) : (
                         <div className="student-search-results">
