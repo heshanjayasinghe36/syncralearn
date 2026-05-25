@@ -7,7 +7,6 @@ export default function StudentOnboarding({
   theme = "light",
   onToggleTheme,
   onCompleted,
-  onSignOut,
 }) {
   const [selected, setSelected] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -70,12 +69,7 @@ export default function StudentOnboarding({
     };
   }, [menuOpen]);
 
-  async function handleContinue() {
-    if (!selected) {
-      setMessage("Please select your VARK result first.");
-      return;
-    }
-
+  async function completeOnboarding(preferences = {}) {
     if (!session?.user?.id) {
       setMessage("No authenticated user found.");
       return;
@@ -97,9 +91,9 @@ export default function StudentOnboarding({
             session.user.email?.split("@")[0] ||
             "Student",
           email: session.user.email,
-          mls: selected,
           vark_completed: true,
           vark_completed_at: new Date().toISOString(),
+          ...preferences,
         },
         { onConflict: "auth_user_id" }
       );
@@ -112,6 +106,19 @@ export default function StudentOnboarding({
 
     await onCompleted?.();
     setLoading(false);
+  }
+
+  async function handleContinue() {
+    if (!selected) {
+      setMessage("Select your VARK result first.");
+      return;
+    }
+
+    await completeOnboarding({ mls: selected });
+  }
+
+  async function handleSkip() {
+    await completeOnboarding();
   }
 
   return (
@@ -151,7 +158,7 @@ export default function StudentOnboarding({
               <BrainIcon />
             </div>
 
-            <h1>Discover Your Learning Style</h1>
+            <h1>Learning Preferences</h1>
             {/* <p className="student-onboarding-copy">
               The VARK questionnaire helps you understand how you process
               information best. Whether you are a visual mapper or a social
@@ -165,15 +172,15 @@ export default function StudentOnboarding({
               className="student-questionnaire-button"
             >
               <ExternalIcon />
-              <span>Open Questionnaire</span>
+              <span>VARK Questionnaire</span>
             </a>
 
             <p className="student-questionnaire-note">
-              Takes approximately 5-10 minutes to complete.
+              Estimated time: 5-10 minutes.
             </p>
 
             <div className="student-onboarding-divider">
-              <span>After finishing, select your learning preference</span>
+              <span>Learning preference</span>
             </div>
 
             <div className="student-manual-section">
@@ -191,7 +198,7 @@ export default function StudentOnboarding({
                   className="student-select-trigger"
                 >
                   <span>
-                    {selectedOption?.label || "Select your VARK result..."}
+                    {selectedOption?.label || "Select VARK result"}
                   </span>
                   <ChevronIcon open={menuOpen} />
                 </button>
@@ -259,10 +266,11 @@ export default function StudentOnboarding({
             <div className="student-onboarding-actions">
               <button
                 type="button"
-                onClick={onSignOut}
+                onClick={handleSkip}
+                disabled={loading}
                 className="student-secondary-action"
               >
-                Sign out
+                Skip for now
               </button>
 
               <button
@@ -281,19 +289,19 @@ export default function StudentOnboarding({
           <BenefitCard
             icon={<MaterialIcon />}
             title="Personalized Material"
-            text="Content formats change based on your profile."
+            text="Course materials match your learning profile."
             tone="warm"
           />
           <BenefitCard
             icon={<PaceIcon />}
-            title="Adaptive Pace"
-            text="The platform learns when you need extra review."
+            title="Progress Tracking"
+            text="Your dashboard keeps attention on active coursework."
             tone="green"
           />
           <BenefitCard
             icon={<SparkIcon />}
-            title="AI Insights"
-            text="Get deep analytics on your cognitive strengths."
+            title="Study Insights"
+            text="Review useful signals from your course activity."
             tone="purple"
           />
         </section>

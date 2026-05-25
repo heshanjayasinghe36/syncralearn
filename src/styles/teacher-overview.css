@@ -1,0 +1,412 @@
+.teacher-overview-page {
+  width: 100%;
+}
+
+.teacher-overview-page .teacher-analytics-header {
+  margin-bottom: 1px;
+}
+
+.teacher-overview-page .teacher-analytics-header h2 {
+  margin: 16px 0 8px;
+  font-size: 28px;
+  color: #0f172a;
+}
+
+.teacher-overview-page .teacher-analytics-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.teacher-overview-page .teacher-analytics-stats {
+  margin-top: 1px;
+}
+
+.teacher-overview-completion-card {
+  margin-top: 1.5rem;
+}
+
+.teacher-overview-completion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.teacher-overview-completion-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.teacher-overview-completion-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.teacher-overview-completion-pills span {
+  border-radius: 999px;
+  background: rgba(206, 229, 236, 0.6);
+  color: #164e63;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.35rem 0.75rem;
+  white-space: nowrap;
+}
+
+.teacher-overview-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 1.4rem;
+}
+
+@media (max-width: 900px) {
+  .teacher-overview-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+.teacher-overview-review-card {
+  border: 1px solid rgba(210, 229, 228, 0.72);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1.15rem;
+  min-height: 20.5rem;
+  box-shadow: 0 10px 24px rgba(37, 75, 68, 0.06);
+}
+
+.teacher-overview-review-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(210, 229, 228, 0.72);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.teacher-overview-review-card-head p {
+  margin: 0;
+  color: #4b5870;
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.teacher-overview-review-card-head strong {
+  display: block;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.teacher-overview-review-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.teacher-overview-review-item {
+  display: grid;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  background: rgba(248, 250, 252, 0.88);
+  padding: 1rem;
+}
+
+.teacher-overview-review-meta {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.teacher-overview-review-course {
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.teacher-overview-review-rating {
+  color: #007c70;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.teacher-overview-review-stars {
+  color: #f59e0b;
+  letter-spacing: 0.02em;
+}
+
+.teacher-overview-review-item p {
+  margin: 0;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.teacher-overview-review-date {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.teacher-overview-empty-review {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.teacher-overview-completion-card {
+  margin-top: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid rgba(210, 229, 228, 0.72);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1.15rem 1.15rem 1rem;
+  min-height: 20.5rem;
+  box-shadow: 0 10px 24px rgba(37, 75, 68, 0.06);
+}
+
+.teacher-overview-completion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.teacher-overview-completion-header h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.teacher-overview-completion-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.teacher-overview-completion-pills span {
+  border-radius: 999px;
+  background: rgba(233, 248, 243, 0.9);
+  padding: 0.34rem 0.64rem;
+  color: #347464;
+  font-size: 0.62rem;
+  font-weight: 850;
+}
+
+.teacher-overview-bar-chart {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(3.8rem, 1fr));
+  align-items: end;
+  gap: 0.55rem;
+  min-height: 15.5rem;
+  padding: 0.8rem 0.25rem 0;
+}
+
+.teacher-overview-bar-item {
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  position: relative;
+  outline: none;
+}
+
+.teacher-overview-bar-track {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 3.3rem;
+  height: 14rem;
+  border-radius: 999px 999px 0 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.teacher-overview-bar-fill {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(233, 248, 243, 0.98),
+    rgba(221, 244, 237, 0.92)
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.teacher-overview-bar-dot {
+  position: absolute;
+  top: -0.25rem;
+  left: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #347464;
+  box-shadow: 0 0 0 0.18rem rgba(52, 116, 100, 0.08);
+  transform: translateX(-50%);
+}
+
+.teacher-overview-bar-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 1rem);
+  z-index: 3;
+  display: grid;
+  gap: 0.22rem;
+  min-width: 11rem;
+  max-width: 14rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(135, 166, 199, 0.22);
+  border-radius: 0.9rem;
+  background: rgba(15, 37, 55, 0.95);
+  box-shadow: 0 14px 28px rgba(14, 36, 53, 0.18);
+  color: #f5fbff;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 0.45rem);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.teacher-overview-bar-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -1.18rem;
+  width: 0.12rem;
+  height: 1.18rem;
+  border-radius: 999px;
+  background: rgba(15, 37, 55, 0.95);
+  transform: translateX(-50%);
+}
+
+.teacher-overview-bar-tooltip strong {
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.teacher-overview-bar-tooltip b {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.teacher-overview-bar-item:hover .teacher-overview-bar-tooltip,
+.teacher-overview-bar-item:focus-visible .teacher-overview-bar-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.teacher-overview-bar-item:hover .teacher-overview-bar-fill,
+.teacher-overview-bar-item:focus-visible .teacher-overview-bar-fill {
+  transform: translateY(-0.2rem);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 20px rgba(52, 116, 100, 0.12);
+}
+
+.teacher-overview-bar-item small {
+  width: 100%;
+  min-height: 1.8rem;
+  overflow: hidden;
+  color: #6b7b94;
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.teacher-overview-chart-wrap {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: stretch;
+  flex: 1;
+  min-height: 15.5rem;
+}
+
+.teacher-overview-y-axis {
+  position: relative;
+  height: 14rem;
+  margin-top: 0.8rem;
+  color: #6b7b94;
+  font-size: 0.58rem;
+  font-weight: 850;
+  line-height: 1;
+  text-align: right;
+}
+
+.teacher-overview-y-axis span {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+}
+
+.teacher-overview-y-axis span:nth-child(1) {
+  top: 0;
+}
+
+.teacher-overview-y-axis span:nth-child(2) {
+  top: 25%;
+}
+
+.teacher-overview-y-axis span:nth-child(3) {
+  top: 50%;
+}
+
+.teacher-overview-y-axis span:nth-child(4) {
+  top: 75%;
+}
+
+.teacher-overview-y-axis span:nth-child(5) {
+  top: 100%;
+}
+
+.teacher-overview-bar-chart {
+  position: relative;
+}
+
+.teacher-overview-card-grid .teacher-overview-completion-card,
+.teacher-overview-card-grid .teacher-overview-review-card {
+  width: 100%;
+  margin-top: 0;
+}
+
+.teacher-overview-review-card-head span {
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 850;
+}
+
+@media (max-width: 1100px) {
+  .teacher-overview-card-grid {
+    grid-template-columns: 1fr;
+  }
+}

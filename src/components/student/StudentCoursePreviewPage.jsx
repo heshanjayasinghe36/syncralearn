@@ -252,7 +252,7 @@ export default function StudentCoursePreviewPage({
 
       if (checkoutReturn.status === "cancelled") {
         setEnrollmentMessage(
-          "Stripe test payment was cancelled. Enrollment was not completed."
+          "Payment was cancelled. Enrollment was not completed."
         );
         clearPendingStripeCheckout();
         clearStripeCheckoutReturnParams();
@@ -269,7 +269,7 @@ export default function StudentCoursePreviewPage({
 
       processedStripeSessionRef.current = checkoutReturn.sessionId;
       setEnrolling(true);
-      setEnrollmentMessage("Verifying Stripe test payment...");
+      setEnrollmentMessage("Confirming payment...");
 
       const { data, error } = await confirmStripeEnrollment({
         courseId,
@@ -288,7 +288,7 @@ export default function StudentCoursePreviewPage({
 
       if (data?.success) {
         setIsEnrolled(true);
-        setEnrollmentMessage("Test payment successful. Enrollment confirmed.");
+        setEnrollmentMessage("Payment successful. Enrollment confirmed.");
         setEnrollModalOpen(false);
         clearPendingStripeCheckout();
         clearStripeCheckoutReturnParams();
@@ -357,7 +357,7 @@ export default function StudentCoursePreviewPage({
       }
 
       if (!data?.checkoutUrl) {
-        setEnrollmentMessage("Stripe checkout URL was not returned.");
+        setEnrollmentMessage("Payment checkout could not be opened.");
         setEnrolling(false);
         return;
       }
@@ -655,8 +655,7 @@ function EnrollmentModal({
 
         {!isFree && Number(courseAmount) > 0 ? (
           <p className="student-enroll-message">
-            You will be redirected to Stripe Checkout in test mode. Use card
-            4242 4242 4242 4242 with any future expiry date and any CVC.
+            Checkout will open in a secure payment page.
           </p>
         ) : null}
 
@@ -674,7 +673,7 @@ function EnrollmentModal({
               : "Redirecting..."
             : isFree
               ? "Confirm Enrollment"
-              : "Proceed to Test Payment"}
+              : "Proceed to Payment"}
         </button>
       </article>
     </div>

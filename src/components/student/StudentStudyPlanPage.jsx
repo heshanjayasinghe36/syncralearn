@@ -60,10 +60,11 @@ function StudentStudyPlanPage() {
   const [showAvailabilityForm, setShowAvailabilityForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   const getStudentId = async () => {
     if (!supabase) {
-      alert(supabaseConfigError || "Supabase is not configured.");
+      setMessage(supabaseConfigError || "Supabase is not configured.");
       return null;
     }
 
@@ -197,11 +198,12 @@ function StudentStudyPlanPage() {
   const generatePlan = async () => {
     try {
       setSaving(true);
+      setMessage("");
 
       const sid = await getStudentId();
 
       if (!sid) {
-        alert("Student profile not found. Please login again.");
+        setMessage("Student profile was not found.");
         return;
       }
 
@@ -221,7 +223,7 @@ function StudentStudyPlanPage() {
       });
 
       if (availabilityRows.length === 0) {
-        alert("Please add at least one available time slot.");
+        setMessage("Add at least one available time slot.");
         return;
       }
 
@@ -230,9 +232,7 @@ function StudentStudyPlanPage() {
       );
 
       if (invalidSlot) {
-        alert(
-          `${invalidSlot.day_of_week} has an invalid time slot. Start time must be before end time.`
-        );
+        setMessage(`${invalidSlot.day_of_week} has an invalid time slot.`);
         return;
       }
 
@@ -243,7 +243,7 @@ function StudentStudyPlanPage() {
 
       if (deleteError) {
         console.error(deleteError);
-        alert("Failed to update old availability.");
+        setMessage("Availability could not be updated.");
         return;
       }
 
@@ -253,15 +253,41 @@ function StudentStudyPlanPage() {
 
       if (insertError) {
         console.error(insertError);
-        alert("Failed to save availability.");
+        setMessage("Availability could not be saved.");
         return;
       }
 
-      alert("Availability saved successfully. Now generate the study plan from your backend script.");
+      const { data, error } = await supabase.functions.invoke(
+        "generate-student-study-plan",
+        {
+          body: { sid },
+        }
+      );
+
+      if (error) {
+        console.error(error);
+        setMessage("Availability saved. Study plan could not be created yet.");
+        await loadAvailability(sid);
+        return;
+      }
+
+      if (data?.plan) {
+        setStudyPlan({
+          plan_id: data.planId || data.generatedAt || Date.now(),
+          plan_json: data.plan,
+          generated_at: data.generatedAt || new Date().toISOString(),
+          model: data.model || "",
+        });
+        setShowAvailabilityForm(false);
+        setMessage("");
+      } else {
+        setMessage("Availability saved. Study plan is not ready yet.");
+      }
+
       await loadAvailability(sid);
     } catch (error) {
       console.error(error);
-      alert("Something went wrong.");
+      setMessage("Study plan could not be updated.");
     } finally {
       setSaving(false);
     }
@@ -302,15 +328,15 @@ function StudentStudyPlanPage() {
     <div className="study-plan-page">
       {(!studyPlan || showAvailabilityForm) && (
   <div className="study-plan-hero">
-    <div className="ai-badge">
+    <div className="study-plan-badge">
       <Sparkles size={14} />
-      AI-Powered Schedule
+      Weekly schedule
     </div>
 
-    <h1>Your Learning Blueprint</h1>
+    <h1>Your Study Plan</h1>
     <p>
-      Tell us when you're free, and we will craft a
-      personalized study plan that matches your energy levels and goals.
+      Set the times you can study each week. Your plan keeps sessions inside
+      those slots.
     </p>
   </div>
 )}
@@ -332,15 +358,15 @@ function StudentStudyPlanPage() {
             </button>
           </div>
 
-          <section className="generated-study-plan">
+          <section className="study-plan-results">
             <div className="study-plan-summary-card">
               <div>
                 <span className="study-plan-small-label">
                   <Sparkles size={13} />
                   Weekly Goal
                 </span>
-                <h3>{plan?.weeklyGoal || "Your personalized weekly study plan"}</h3>
-                <p>{plan?.summary || "Follow your generated study schedule for this week."}</p>
+                <h3>{plan?.weeklyGoal || "Your weekly study plan"}</h3>
+                <p>{plan?.summary || "Your study schedule for this week."}</p>
               </div>
 
               <div className="study-plan-hours-card">
@@ -356,7 +382,7 @@ function StudentStudyPlanPage() {
                     <CalendarDays size={13} />
                     Learning Journey
                   </span>
-                  <h3>Move through the week one focused stop at a time.</h3>
+                  <h3>This week's focus blocks</h3>
                   {/* <p>Hover over a day card to see the full study sessions planned for that day.</p> */}
                 </div>
               </div>
@@ -417,7 +443,7 @@ function StudentStudyPlanPage() {
                           </h4>
                           <p>
                             {sessions[0]?.taskDescription ||
-                              "Use this day to rest, revise lightly, or prepare for the next study block."}
+                              "Rest, light revision, or preparation for the next study block."}
                           </p>
                         </div>
                       </div>
@@ -554,14 +580,20 @@ function StudentStudyPlanPage() {
               onClick={generatePlan}
               disabled={saving || loading}
             >
-              {saving ? "Saving..." : "Save Availability"}
+              {saving
+                ? "Preparing..."
+                : studyPlan
+                  ? "Update Study Plan"
+                  : "Create Study Plan"}
               <Sparkles size={18} />
             </button>
 
-            <p>
-              <Clock size={13} />
-              After saving availability, generate the study plan from your backend script.
-            </p>
+            {message ? (
+              <p className="study-plan-message">
+                <Clock size={13} />
+                {message}
+              </p>
+            ) : null}
           </div>
         </>
       )}

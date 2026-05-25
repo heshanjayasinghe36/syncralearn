@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
-import { continueWithGoogle, signInWithEmail } from "../../lib/supabase";
+import {
+  continueWithGoogle,
+  signInWithEmail,
+  supabase,
+  supabaseConfigError,
+} from "../../lib/supabase";
 
 export default function LoginPage({
   notice,
@@ -14,6 +19,7 @@ export default function LoginPage({
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOAuthLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const identifierValue = identifier.trim();
@@ -90,6 +96,37 @@ export default function LoginPage({
     }
   }
 
+  async function handlePasswordReset() {
+    if (!emailLogin) {
+      setMessage("Enter your email address to reset your password.");
+      return;
+    }
+
+    if (!supabase) {
+      setMessage(supabaseConfigError || "Supabase is not configured.");
+      return;
+    }
+
+    setResetLoading(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      identifierValue,
+      {
+        redirectTo:
+          typeof window === "undefined" ? undefined : window.location.origin,
+      }
+    );
+
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setMessage("Password reset link sent.");
+    }
+
+    setResetLoading(false);
+  }
+
   return (
     <div className="exp-shell exp-auth-page">
       <AuthNav
@@ -101,19 +138,19 @@ export default function LoginPage({
       <main className="exp-auth-main">
         <section className="exp-auth-hero">
           <div className="exp-auth-copy">
-            <h1>Master new skills with joy.</h1>
+            <h1>Learn at your pace.</h1>
             <p>
-              Join a learning space designed for your pace, your style, and
-              your little daily wins.
+              Continue your courses, track progress, and keep your study plan
+              in one place.
             </p>
           </div>
           <HeroArt />
         </section>
 
         <section className="exp-frame exp-auth-card">
-          <h2>Welcome Back</h2>
+          <h2>Welcome back</h2>
           <p className="exp-auth-card-subtitle">
-            Your learning path is waiting for you.
+            Sign in to continue.
           </p>
 
           <form className="mt-4 space-y-3.5" onSubmit={handleSubmit}>
@@ -145,7 +182,7 @@ export default function LoginPage({
                   value={pw}
                   onChange={(e) => setPw(e.target.value)}
                   type={showPw ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="********"
                   autoComplete="current-password"
                   className="exp-input pr-16"
                 />
@@ -174,11 +211,10 @@ export default function LoginPage({
               <button
                 type="button"
                 className="text-sm font-semibold text-emerald-800 hover:text-emerald-700 dark:text-teal-200"
-                onClick={() =>
-                  setMessage("Password reset is not implemented yet.")
-                }
+                onClick={handlePasswordReset}
+                disabled={resetLoading || loading}
               >
-                Forgot password?
+                {resetLoading ? "Sending..." : "Forgot password?"}
               </button>
             </div>
 
@@ -269,8 +305,8 @@ function HeroArt() {
       <div className="exp-art-dot one" />
       <div className="exp-art-dot two" />
       <div className="exp-art-dot three" />
-      <div className="exp-art-star">✦</div>
-      <div className="exp-art-chip">Dream more</div>
+      <div className="exp-art-star">*</div>
+      <div className="exp-art-chip">Study</div>
     </div>
   );
 }
@@ -279,7 +315,7 @@ function AuthFooter() {
   return (
     <footer className="exp-auth-footer">
       <div className="exp-auth-footer-inner">
-        <span>© 2026 Syncra Learn. Built for lifelong learners.</span>
+        <span>{"\u00A9"} 2026 Syncra Learn. Built for lifelong learners.</span>
         <div className="exp-auth-footer-links">
           <span>Privacy Policy</span>
           <span>Terms of Service</span>

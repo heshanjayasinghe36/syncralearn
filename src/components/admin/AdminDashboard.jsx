@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import "./AdminDashboard.css";
+import "../../styles/admin-dashboard.css";
 import AdminVerificationPage from "./AdminVerificationPage";
 import { supabase } from "../../lib/supabase";
 import CoursePreviewPage from "../teacher/CoursePreviewPage";

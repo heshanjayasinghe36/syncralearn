@@ -304,7 +304,7 @@ export default function StudentSettingsPage({
                   <span>
                     {selectedOption?.label ||
                       formatLearningStyle(selectedLearningStyle) ||
-                      "Select your VARK result..."}
+                      "Select VARK result"}
                   </span>
                   <ChevronDown
                     aria-hidden="true"

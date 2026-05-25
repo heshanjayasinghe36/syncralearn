@@ -151,7 +151,7 @@ export default function TeacherOnboarding({
 
     if (!canSubmit) {
       setMessage(
-        "Please complete the required fields and upload a verification document."
+        "Missing required profile details."
       );
       return;
     }
@@ -263,15 +263,14 @@ export default function TeacherOnboarding({
         </div>
 
         <h1 className="exp-title mt-5 text-3xl font-semibold sm:text-4xl">
-          Complete your lecturer profile.
+          Lecturer profile
           <span className="exp-highlight block pt-2">
-            Keep the proof polished and friendly.
+            Verification details
           </span>
         </h1>
 
         <p className="exp-muted mt-3 max-w-2xl text-sm leading-relaxed">
-          Submit your academic and professional details for review. Your teacher
-          account will be created as unverified until an admin approves it.
+          Add your academic and professional details for admin review.
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
@@ -369,7 +368,7 @@ export default function TeacherOnboarding({
 
           <Field
             label="Verification document"
-            hint="Required: degree certificate, staff ID, or transcript"
+            hint="Degree certificate, staff ID, or transcript"
           >
             <input
               type="file"

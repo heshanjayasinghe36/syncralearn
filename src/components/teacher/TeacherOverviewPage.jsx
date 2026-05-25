@@ -202,8 +202,7 @@ export default function TeacherOverviewPage({ teacherProfile }) {
 
               {chartData.length === 0 ? (
                 <p className="teacher-analytics-muted">
-                  No completion data available yet. Once insights are generated,
-                  this chart will show completion rates for each course.
+                  Course progress will appear here once students start learning.
                 </p>
               ) : (
                 <div className="teacher-overview-chart-wrap">
@@ -496,7 +495,7 @@ function average(values) {
 
 function formatInsightLoadError(error) {
   if (error.message?.includes(INSIGHTS_TABLE)) {
-    return `Could not load teacher insights. Make sure the ${INSIGHTS_TABLE} table exists.`;
+    return "Teacher insights are not available yet.";
   }
 
   return `Overview load failed: ${error.message}`;

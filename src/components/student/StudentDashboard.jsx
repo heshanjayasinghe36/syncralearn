@@ -3,6 +3,8 @@ import {
   Banknote,
   Bell,
   BookOpen,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Flame,
   GraduationCap,
@@ -14,7 +16,11 @@ import {
   Star,
 } from "lucide-react";
 import { supabase, supabaseConfigError } from "../../lib/supabase";
-import { getVarkStyleKeys, getVarkStyleLabel } from "../../lib/vark";
+import {
+  getVarkStyleKeys,
+  getVarkStyleLabel,
+  inferVarkPreferenceFromStyles,
+} from "../../lib/vark";
 import {
   clearPendingStripeCheckout,
   clearStripeCheckoutReturnParams,
@@ -37,7 +43,7 @@ const sidebarItems = [
   },
   {
     id: "courses",
-    label: "Courses",
+    label: "Continue Learning",
     icon: <BookOpen aria-hidden="true" />,
   },
   {
@@ -58,6 +64,7 @@ export default function StudentDashboard({
   const [activeView, setActiveView] = useState("dashboard");
   const [localStudentProfile, setLocalStudentProfile] = useState(studentProfile);
   const [suggestedCourses, setSuggestedCourses] = useState([]);
+  const [alsoLikeCourses, setAlsoLikeCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
@@ -66,11 +73,13 @@ export default function StudentDashboard({
     useState("dashboard");
   const [savedCourseLessonSelection, setSavedCourseLessonSelection] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [loadingEnrolledCourses, setLoadingEnrolledCourses] = useState(false);
+  const [loadingAlsoLikeCourses, setLoadingAlsoLikeCourses] = useState(false);
+  const [loadingEnrolledCourses, setLoadingEnrolledCourses] = useState(true);
   const [searchCatalogCourses, setSearchCatalogCourses] = useState([]);
   const [searchCatalogTeachers, setSearchCatalogTeachers] = useState([]);
   const [loadingSearchCatalog, setLoadingSearchCatalog] = useState(false);
   const [suggestionMessage, setSuggestionMessage] = useState("");
+  const [alsoLikeMessage, setAlsoLikeMessage] = useState("");
   const [enrolledCoursesMessage, setEnrolledCoursesMessage] = useState("");
   const [studyPlanCard, setStudyPlanCard] = useState(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -79,6 +88,8 @@ export default function StudentDashboard({
   const [reviewPopup, setReviewPopup] = useState(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
+  const [reviewMessage, setReviewMessage] = useState("");
+  const [learningGoal, setLearningGoal] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [courseRefreshKey, setCourseRefreshKey] = useState(0);
@@ -86,6 +97,7 @@ export default function StudentDashboard({
   const profileMenuRef = useRef(null);
   const notificationMenuRef = useRef(null);
   const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
   const streakSyncedStudentIdRef = useRef(null);
   const restoredStripeCheckoutRef = useRef(false);
   const processedStripeReturnRef = useRef("");
@@ -100,9 +112,24 @@ export default function StudentDashboard({
     "Student";
 
   const initials = getInitials(displayName);
-  const learningStyle = effectiveStudentProfile?.mls || "";
+  const rawStoredLearningStyle = effectiveStudentProfile?.mls;
+  const storedLearningStyle = rawStoredLearningStyle || "";
   const studentId = effectiveStudentProfile?.sid || null;
   const currentStreak = Number(effectiveStudentProfile?.current_streak || 0);
+  const hasStoredLearningStyle =
+    getVarkStyleKeys(storedLearningStyle).length > 0;
+  const inferredLearningStyle = hasStoredLearningStyle
+    ? ""
+    : inferVarkPreferenceFromStyles(
+        enrolledCourses.map((course) => course.teachingstyle)
+      );
+  const learningStyle = hasStoredLearningStyle
+    ? storedLearningStyle
+    : inferredLearningStyle;
+  const hasLearningStyle = getVarkStyleKeys(learningStyle).length > 0;
+  const showLearningPrompt =
+    !loadingEnrolledCourses &&
+    (!hasLearningStyle || enrolledCourses.length === 0);
 
   function handleStudentProfileUpdate(nextProfile) {
     setLocalStudentProfile(nextProfile);
@@ -121,6 +148,7 @@ export default function StudentDashboard({
       );
     }
 
+    setLoadingEnrolledCourses(true);
     setCourseRefreshKey((current) => current + 1);
 
     if (options.redirectToDashboard) {
@@ -404,12 +432,14 @@ export default function StudentDashboard({
         setEnrolledCoursesMessage(
           supabaseConfigError || "Supabase is not configured."
         );
+        setLoadingEnrolledCourses(false);
         return;
       }
 
       if (!studentId) {
         setEnrolledCourses([]);
         setEnrolledCoursesMessage("");
+        setLoadingEnrolledCourses(false);
         return;
       }
 
@@ -477,7 +507,62 @@ export default function StudentDashboard({
     return () => {
       ignore = true;
     };
-  }, [studentId]);
+  }, [studentId, courseRefreshKey]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function saveInferredLearningStyle() {
+      if (
+        !supabase ||
+        !studentId ||
+        hasStoredLearningStyle ||
+        !inferredLearningStyle
+      ) {
+        return;
+      }
+
+      let query = supabase
+        .from("student")
+        .update({ mls: inferredLearningStyle })
+        .eq("sid", studentId);
+
+      query =
+        rawStoredLearningStyle === null ||
+        rawStoredLearningStyle === undefined
+          ? query.is("mls", null)
+          : query.eq("mls", rawStoredLearningStyle);
+
+      const { data, error } = await query.select("*").maybeSingle();
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        console.warn("Student learning style inference save failed:", error.message);
+        return;
+      }
+
+      if (data) {
+        setLocalStudentProfile(data);
+        onStudentProfileUpdate?.(data);
+      }
+    }
+
+    void saveInferredLearningStyle();
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    studentId,
+    rawStoredLearningStyle,
+    storedLearningStyle,
+    hasStoredLearningStyle,
+    inferredLearningStyle,
+    onStudentProfileUpdate,
+  ]);
 
   useEffect(() => {
     let ignore = false;
@@ -564,6 +649,182 @@ export default function StudentDashboard({
       ignore = true;
     };
   }, [enrolledCourses, learningStyle, courseRefreshKey]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadAlsoLikeCourses() {
+      if (!supabase) {
+        setAlsoLikeCourses([]);
+        setAlsoLikeMessage(supabaseConfigError || "Supabase is not configured.");
+        setLoadingAlsoLikeCourses(false);
+        return;
+      }
+
+      if (!studentId || !hasLearningStyle || enrolledCourses.length === 0) {
+        setAlsoLikeCourses([]);
+        setAlsoLikeMessage(
+          studentId
+            ? "Enroll in a course to see recommendations from similar students."
+            : ""
+        );
+        setLoadingAlsoLikeCourses(false);
+        return;
+      }
+
+      setLoadingAlsoLikeCourses(true);
+      setAlsoLikeMessage("");
+
+      const enrolledCourseIds = enrolledCourses.map((course) => course.id);
+      const enrolledCourseIdSet = new Set(
+        enrolledCourseIds.map((courseId) => String(courseId))
+      );
+      const styleMatchedCourseIdSet = new Set(
+        suggestedCourses.map((course) => String(course.id))
+      );
+
+      const { data: sharedRows, error: sharedError } = await supabase
+        .from("student_course")
+        .select("sid")
+        .in("cid", enrolledCourseIds)
+        .neq("sid", studentId);
+
+      if (ignore) {
+        return;
+      }
+
+      if (sharedError) {
+        setAlsoLikeCourses([]);
+        setAlsoLikeMessage(
+          `Recommendations load failed: ${sharedError.message}`
+        );
+        setLoadingAlsoLikeCourses(false);
+        return;
+      }
+
+      const peerStudentIds = [
+        ...new Set((sharedRows || []).map((row) => row.sid).filter(Boolean)),
+      ];
+
+      if (peerStudentIds.length === 0) {
+        setAlsoLikeCourses([]);
+        setAlsoLikeMessage("No recommendations from similar students yet.");
+        setLoadingAlsoLikeCourses(false);
+        return;
+      }
+
+      const { data: peerEnrollmentRows, error: peerEnrollmentError } =
+        await supabase
+          .from("student_course")
+          .select("cid")
+          .in("sid", peerStudentIds);
+
+      if (ignore) {
+        return;
+      }
+
+      if (peerEnrollmentError) {
+        setAlsoLikeCourses([]);
+        setAlsoLikeMessage(
+          `Recommendations load failed: ${peerEnrollmentError.message}`
+        );
+        setLoadingAlsoLikeCourses(false);
+        return;
+      }
+
+      const coursePeerCounts = new Map();
+
+      for (const row of peerEnrollmentRows || []) {
+        if (
+          !row.cid ||
+          enrolledCourseIdSet.has(String(row.cid)) ||
+          styleMatchedCourseIdSet.has(String(row.cid))
+        ) {
+          continue;
+        }
+
+        coursePeerCounts.set(
+          row.cid,
+          (coursePeerCounts.get(row.cid) || 0) + 1
+        );
+      }
+
+      const candidateCourseIds = [...coursePeerCounts.keys()];
+
+      if (candidateCourseIds.length === 0) {
+        setAlsoLikeCourses([]);
+        setAlsoLikeMessage("No recommendations from similar students yet.");
+        setLoadingAlsoLikeCourses(false);
+        return;
+      }
+
+      const { data: courseData, error: courseError } = await supabase
+        .from("course")
+        .select(
+          `
+          cid,
+          name,
+          description,
+          teachingstyle,
+          amount,
+          level,
+          status,
+          img_url,
+          intro_vid_url,
+          tid,
+          teacher (
+            full_name
+          ),
+          review (
+            rating
+          )
+        `
+        )
+        .in("cid", candidateCourseIds)
+        .ilike("status", "active");
+
+      if (ignore) {
+        return;
+      }
+
+      if (courseError) {
+        setAlsoLikeCourses([]);
+        setAlsoLikeMessage(`Recommendations load failed: ${courseError.message}`);
+        setLoadingAlsoLikeCourses(false);
+        return;
+      }
+
+      const recommendedCourses = (courseData || [])
+        .sort((left, right) => {
+          const countDifference =
+            (coursePeerCounts.get(right.cid) || 0) -
+            (coursePeerCounts.get(left.cid) || 0);
+
+          return countDifference || right.cid - left.cid;
+        })
+        .map(mapSuggestedCourse);
+
+      setAlsoLikeCourses(recommendedCourses);
+      setAlsoLikeMessage(
+        recommendedCourses.length === 0
+          ? "No recommendations from similar students yet."
+          : ""
+      );
+      setLoadingAlsoLikeCourses(false);
+    }
+
+    void loadAlsoLikeCourses();
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    studentId,
+    hasLearningStyle,
+    enrolledCourses,
+    suggestedCourses,
+    courseRefreshKey,
+  ]);
 
   useEffect(() => {
     let ignore = false;
@@ -680,6 +941,7 @@ export default function StudentDashboard({
       enrolledCourses.find((course) => Number(course.id) === pendingCourseId) ||
       searchCatalogCourses.find((course) => Number(course.id) === pendingCourseId) ||
       suggestedCourses.find((course) => Number(course.id) === pendingCourseId) ||
+      alsoLikeCourses.find((course) => Number(course.id) === pendingCourseId) ||
       pendingCheckout?.course ||
       null;
 
@@ -691,7 +953,7 @@ export default function StudentDashboard({
     setCourseReturnView(pendingCheckout?.returnView || "dashboard");
     setSelectedCourse(pendingCourse);
     setActiveView("course-preview");
-  }, [enrolledCourses, searchCatalogCourses, suggestedCourses]);
+  }, [enrolledCourses, searchCatalogCourses, suggestedCourses, alsoLikeCourses]);
 
   const searchResults = getStudentSearchResults(
     searchCatalogCourses,
@@ -722,6 +984,67 @@ export default function StudentDashboard({
       activeView
     );
     setSearchQuery("");
+  }
+
+  function submitLearningGoal(event) {
+    event.preventDefault();
+
+    const nextQuery = learningGoal.trim();
+
+    if (!nextQuery) {
+      return;
+    }
+
+    setSearchQuery(nextQuery);
+    setSearchOpen(true);
+    searchInputRef.current?.focus();
+  }
+
+  function openReviewDialog(courseId, courseName) {
+    setReviewPopup({ courseId, courseName });
+    setReviewRating(0);
+    setReviewComment("");
+    setReviewMessage("");
+  }
+
+  function closeReviewDialog() {
+    setReviewPopup(null);
+    setReviewRating(0);
+    setReviewComment("");
+    setReviewMessage("");
+  }
+
+  async function submitReview() {
+    if (!supabase) {
+      setReviewMessage(supabaseConfigError || "Supabase is not configured.");
+      return;
+    }
+
+    if (!studentId || !reviewPopup?.courseId) {
+      setReviewMessage("Review could not be saved.");
+      return;
+    }
+
+    if (reviewRating === 0) {
+      setReviewMessage("Choose a rating before submitting.");
+      return;
+    }
+
+    const { error } = await supabase.from("review").insert({
+      sid: studentId,
+      cid: reviewPopup.courseId,
+      rating: reviewRating,
+      comment: reviewComment,
+      date: new Date().toISOString().split("T")[0],
+      time: new Date().toTimeString().split(" ")[0],
+    });
+
+    if (error) {
+      setReviewMessage(`Review could not be saved: ${error.message}`);
+      return;
+    }
+
+    closeReviewDialog();
   }
 
   if (activeView === "enrolled-course-preview" && selectedCourse) {
@@ -813,6 +1136,7 @@ export default function StudentDashboard({
           <div className="teacher-search student-course-search" ref={searchRef}>
             <Search aria-hidden="true" />
             <input
+              ref={searchInputRef}
               type="search"
               placeholder="Search courses or teachers..."
               value={searchQuery}
@@ -961,12 +1285,11 @@ export default function StudentDashboard({
                           className="student-notification-item-body"
                           onClick={() => {
                             if (notification.type === "course_completion") {
-                              setReviewPopup({
-                                courseId: notification.data?.course_id,
-                                courseName:
-                                  notification.title.match(/completed (.+)\./)?.[1] ||
-                                  "Course",
-                              });
+                              openReviewDialog(
+                                notification.data?.course_id,
+                                notification.title.match(/completed (.+)\./)?.[1] ||
+                                  "Course"
+                              );
                               setNotificationMenuOpen(false);
                             }
 
@@ -1091,10 +1414,7 @@ export default function StudentDashboard({
               }}
               onOpenTeacher={(course) => openTeacherProfile(course, "courses")}
               onAddReview={(course) => {
-                setReviewPopup({
-                  courseId: course.cid,
-                  courseName: course.name,
-                });
+                openReviewDialog(course.cid, course.name);
               }}
             />
           ) : activeView === "settings" ? (
@@ -1114,51 +1434,71 @@ export default function StudentDashboard({
               }`}
             >
               <div className="student-dashboard-scroll-column">
-                <CourseSection
-                  className="student-continue-section"
-                  badge="Your learning"
-                  title="Continue Learning"
-                  icon={<BookOpen aria-hidden="true" />}
-                  courses={enrolledCourses}
-                  loading={loadingEnrolledCourses}
-                  loadingText="Loading enrolled courses..."
-                  message={
-                    enrolledCoursesMessage ||
-                    (enrolledCourses.length === 0
-                      ? "You have not enrolled in any courses yet."
-                      : "")
-                  }
-                  onOpenCourse={(course) => {
-                    setCourseReturnView("dashboard");
-                    setSelectedCourse(course);
-                    setActiveView("enrolled-course-preview");
-                  }}
-                  onOpenTeacher={(course) => openTeacherProfile(course, "dashboard")}
-                  onAddReview={(course) => {
-                    setReviewPopup({
-                      courseId: course.cid,
-                      courseName: course.name,
-                    });
-                  }}
-                />
+                {showLearningPrompt ? (
+                  <form
+                    className="student-learning-prompt"
+                    onSubmit={submitLearningGoal}
+                  >
+                    <div className="student-learning-prompt-row">
+                      <label htmlFor="student-learning-goal">
+                        I want to learn
+                      </label>
+                      <input
+                        id="student-learning-goal"
+                        type="text"
+                        value={learningGoal}
+                        onChange={(event) => setLearningGoal(event.target.value)}
+                        placeholder="e.g. JavaScript, UI design, machine learning"
+                      />
+                      <button type="submit" disabled={!learningGoal.trim()}>
+                        Search
+                      </button>
+                    </div>
+                  </form>
+                ) : !loadingEnrolledCourses ? (
+                  <>
+                    <CourseSection
+                      className="student-suggested-section"
+                      badge="Matched for your style"
+                      // title="Suggested Courses"
+                      icon={<Sparkles aria-hidden="true" />}
+                      courses={suggestedCourses}
+                      scrollable
+                      forcePreviewDetails
+                      loading={loadingSuggestions}
+                      loadingText="Loading suggested courses..."
+                      message={suggestionMessage}
+                      onOpenCourse={(course) => {
+                        setCourseReturnView("dashboard");
+                        setSelectedCourse(course);
+                        setActiveView("course-preview");
+                      }}
+                      onOpenTeacher={(course) =>
+                        openTeacherProfile(course, "dashboard")
+                      }
+                    />
 
-                <CourseSection
-                  className="student-suggested-section"
-                  badge="Matched for your style"
-                  title="Suggested Courses"
-                  icon={<Sparkles aria-hidden="true" />}
-                  courses={suggestedCourses}
-                  forcePreviewDetails
-                  loading={loadingSuggestions}
-                  loadingText="Loading suggested courses..."
-                  message={suggestionMessage}
-                  onOpenCourse={(course) => {
-                    setCourseReturnView("dashboard");
-                    setSelectedCourse(course);
-                    setActiveView("course-preview");
-                  }}
-                  onOpenTeacher={(course) => openTeacherProfile(course, "dashboard")}
-                />
+                    <CourseSection
+                      className="student-suggested-section"
+                      badge="You may also like"
+                      icon={<BookOpen aria-hidden="true" />}
+                      courses={alsoLikeCourses}
+                      scrollable
+                      forcePreviewDetails
+                      loading={loadingAlsoLikeCourses}
+                      loadingText="Loading recommendations..."
+                      message={alsoLikeMessage}
+                      onOpenCourse={(course) => {
+                        setCourseReturnView("dashboard");
+                        setSelectedCourse(course);
+                        setActiveView("course-preview");
+                      }}
+                      onOpenTeacher={(course) =>
+                        openTeacherProfile(course, "dashboard")
+                      }
+                    />
+                  </>
+                ) : null}
               </div>
 
               <div className="student-dashboard-right-column">
@@ -1177,7 +1517,7 @@ export default function StudentDashboard({
       </section>
 
       {reviewPopup && (
-        <div className="review-popup-overlay" onClick={() => setReviewPopup(null)}>
+        <div className="review-popup-overlay" onClick={closeReviewDialog}>
           <div className="review-popup" onClick={(e) => e.stopPropagation()}>
             <h3>Review {reviewPopup.courseName}</h3>
 
@@ -1200,38 +1540,16 @@ export default function StudentDashboard({
               onChange={(e) => setReviewComment(e.target.value)}
             />
 
+            {reviewMessage ? (
+              <p className="student-settings-message">{reviewMessage}</p>
+            ) : null}
+
             <div className="review-actions">
-              <button type="button" onClick={() => setReviewPopup(null)}>
+              <button type="button" onClick={closeReviewDialog}>
                 Cancel
               </button>
 
-              <button
-                type="button"
-                onClick={async () => {
-                  if (reviewRating === 0) {
-                    alert("Please select a rating.");
-                    return;
-                  }
-
-                  const { error } = await supabase.from("review").insert({
-                    sid: studentId,
-                    cid: reviewPopup.courseId,
-                    rating: reviewRating,
-                    comment: reviewComment,
-                    date: new Date().toISOString().split("T")[0],
-                    time: new Date().toTimeString().split(" ")[0],
-                  });
-
-                  if (error) {
-                    alert("Failed to submit review: " + error.message);
-                  } else {
-                    alert("Review submitted successfully!");
-                    setReviewPopup(null);
-                    setReviewRating(0);
-                    setReviewComment("");
-                  }
-                }}
-              >
+              <button type="button" onClick={submitReview}>
                 Submit Review
               </button>
             </div>
@@ -1347,6 +1665,7 @@ function CourseSection({
   title,
   icon,
   courses,
+  scrollable = false,
   forcePreviewDetails = false,
   loading,
   loadingText,
@@ -1356,8 +1675,25 @@ function CourseSection({
   onAddReview,
 }) {
   const [expanded, setExpanded] = useState(false);
-  const canExpand = courses.length > 3;
-  const visibleCourses = expanded ? courses : courses.slice(0, 3);
+  const courseTrackRef = useRef(null);
+  const canExpand = !scrollable && courses.length > 3;
+  const visibleCourses =
+    scrollable || expanded ? courses : courses.slice(0, 3);
+  const showCarouselControls =
+    scrollable && !loading && !message && courses.length > 1;
+
+  function scrollCourses(direction) {
+    const track = courseTrackRef.current;
+
+    if (!track) {
+      return;
+    }
+
+    track.scrollBy({
+      left: direction * track.clientWidth * 0.85,
+      behavior: "smooth",
+    });
+  }
 
   return (
     <section className={`student-suggestions-section ${className}`}>
@@ -1368,7 +1704,28 @@ function CourseSection({
               {icon}
               {badge}
             </span>
-            {canExpand ? (
+            {showCarouselControls ? (
+              <div
+                className="student-suggestions-controls"
+                role="group"
+                aria-label={`Browse ${badge} courses`}
+              >
+                <button
+                  type="button"
+                  onClick={() => scrollCourses(-1)}
+                  aria-label="Scroll courses left"
+                >
+                  <ChevronLeft aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollCourses(1)}
+                  aria-label="Scroll courses right"
+                >
+                  <ChevronRight aria-hidden="true" />
+                </button>
+              </div>
+            ) : canExpand ? (
               <button
                 type="button"
                 className="student-suggestions-toggle"
@@ -1378,7 +1735,7 @@ function CourseSection({
               </button>
             ) : null}
           </div>
-          <h2>{title}</h2>
+          {title ? <h2>{title}</h2> : null}
         </div>
       </div>
 
@@ -1387,7 +1744,10 @@ function CourseSection({
       ) : message ? (
         <p className="student-suggestion-state">{message}</p>
       ) : (
-        <div className="student-suggestion-grid">
+        <div
+          ref={courseTrackRef}
+          className={`student-suggestion-grid ${scrollable ? "is-scrollable" : ""}`}
+        >
           {visibleCourses.map((course) => (
             <CourseCard
               key={course.id}

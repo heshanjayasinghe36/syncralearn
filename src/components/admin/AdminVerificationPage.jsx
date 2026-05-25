@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import "./AdminVerificationPage.css";
+import "../../styles/admin-verification.css";
 
 export default function AdminVerificationPage({
   pendingTeachers,

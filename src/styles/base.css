@@ -1,0 +1,64 @@
+:root {
+  color-scheme: light;
+  --exp-ink: #17231f;
+  --exp-heading: #2c5f51;
+  --exp-muted: #5e6b7f;
+  --exp-panel: rgba(248, 253, 251, 0.86);
+  --exp-panel-strong: rgba(255, 255, 255, 0.92);
+  --exp-panel-faint: rgba(255, 255, 255, 0.62);
+  --exp-border: rgba(174, 232, 216, 0.72);
+  --exp-glass-line: rgba(255, 255, 255, 0.88);
+  --exp-shadow: 0 26px 70px rgba(37, 75, 68, 0.12);
+  --exp-grid: rgba(44, 95, 81, 0.035);
+  --exp-accent: #00b69f;
+  --exp-accent-deep: #347464;
+  --exp-accent-soft: rgba(0, 182, 159, 0.12);
+  --exp-warm: #d6a081;
+  --exp-rose: #77507a;
+}
+
+.dark {
+  color-scheme: dark;
+  --exp-ink: #f5fbf8;
+  --exp-heading: #b7f4e6;
+  --exp-muted: rgba(231, 245, 241, 0.68);
+  --exp-panel: rgba(18, 31, 38, 0.8);
+  --exp-panel-strong: rgba(24, 39, 48, 0.9);
+  --exp-panel-faint: rgba(255, 255, 255, 0.08);
+  --exp-border: rgba(119, 221, 205, 0.22);
+  --exp-glass-line: rgba(255, 255, 255, 0.16);
+  --exp-shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
+  --exp-grid: rgba(255, 255, 255, 0.04);
+  --exp-accent: #73e2d3;
+  --exp-accent-deep: #9be9db;
+  --exp-accent-soft: rgba(115, 226, 211, 0.14);
+  --exp-warm: #e8b08f;
+  --exp-rose: #cca2cf;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--exp-ink);
+  background:
+    radial-gradient(circle at 86% 18%, rgba(218, 246, 238, 0.82), transparent 24rem),
+    radial-gradient(circle at 14% 82%, rgba(246, 241, 255, 0.8), transparent 24rem),
+    linear-gradient(180deg, #f8fbfb 0%, #f4f8f9 58%, #f7f9fb 100%);
+  font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at 86% 18%, rgba(20, 93, 80, 0.26), transparent 24rem),
+    radial-gradient(circle at 14% 82%, rgba(63, 46, 82, 0.24), transparent 24rem),
+    linear-gradient(180deg, #071116 0%, #111b22 58%, #12161f 100%);
+}
+
+body::selection {
+  background: rgba(0, 182, 159, 0.18);
+}

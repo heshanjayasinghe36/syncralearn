@@ -185,7 +185,7 @@ export default function TeacherAnalyticsPage({
       {loading ? (
         <p className="teacher-analytics-empty">Loading analytics insights...</p>
       ) : insights.length === 0 ? (
-        <AnalyticsEmptyState teacherId={teacherProfile?.tid} />
+        <AnalyticsEmptyState />
       ) : activeAnalyticsView === "graphs" ? (
         <GraphsView selectedInsight={selectedInsight} />
       ) : (
@@ -215,16 +215,14 @@ function CourseTagChooser({ insights, selectedInsight, onSelectInsight }) {
   );
 }
 
-function AnalyticsEmptyState({ teacherId }) {
+function AnalyticsEmptyState() {
   return (
     <div className="teacher-analytics-empty-card">
       <Sparkles aria-hidden="true" />
-      <h3>No insights generated yet</h3>
+      <h3>No insights yet</h3>
       <p>
-        Run the teacher insights script after students have watched videos or
-        completed quizzes.
+        Insights will appear after students watch lessons or complete quizzes.
       </p>
-      <code>npm run teacher:insights -- --teacher={teacherId || "YOUR_TID"}</code>
     </div>
   );
 }
@@ -250,12 +248,10 @@ function InsightDetail({ insight }) {
           </span>
 
           <h3>{insight.title}</h3>
-          <p>{insight.summary || "No summary was generated for this report."}</p>
+          <p>{insight.summary || "No summary available for this report."}</p>
         </div>
 
-        <small>
-          {insight.model ? `Model: ${insight.model}` : "Model not recorded"}
-        </small>
+        <small>{formatReportDate(insight.generatedAt)}</small>
       </div>
 
       <div className="teacher-analytics-course-metrics">
@@ -286,21 +282,21 @@ function InsightDetail({ insight }) {
         icon={<Sparkles aria-hidden="true" />}
         title="Priority actions"
         items={priorityActions}
-        emptyText="No priority actions were generated."
+        emptyText="No priority actions yet."
       />
 
       <FindingSection
         icon={<Clapperboard aria-hidden="true" />}
         title="Video insights"
         findings={videoInsights}
-        emptyText="No video insight was generated yet."
+        emptyText="No video insights yet."
       />
 
       <FindingSection
         icon={<ListChecks aria-hidden="true" />}
         title="Quiz insights"
         findings={quizInsights}
-        emptyText="No quiz insight was generated yet."
+        emptyText="No quiz insights yet."
       />
 
       <HotspotSection videos={videos} />
@@ -329,7 +325,7 @@ function GraphsView({ selectedInsight }) {
 
       {comparisonCharts.length === 0 ? (
         <p className="teacher-analytics-muted">
-          No graphable metrics were found for this course yet.
+          No chart data available for this course yet.
         </p>
       ) : null}
     </section>
@@ -851,10 +847,28 @@ function getRiskLabel(riskLevel) {
 
 function formatInsightLoadError(error) {
   if (error.message?.includes(INSIGHTS_TABLE)) {
-    return `Could not load teacher insights. Make sure the ${INSIGHTS_TABLE} table exists.`;
+    return "Teacher insights are not available yet.";
   }
 
   return `Insights load failed: ${error.message}`;
+}
+
+function formatReportDate(value) {
+  if (!value) {
+    return "Updated recently";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Updated recently";
+  }
+
+  return `Updated ${date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })}`;
 }
 
 function toArray(value) {

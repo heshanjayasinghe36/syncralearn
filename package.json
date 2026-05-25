@@ -12,6 +12,7 @@
     "analyze:frames": "node scripts/analyzeFrames.js",
     "courses:update-style": "node scripts/updateCourseTeachingStyle.js",
     "teachers:update-style": "node scripts/updateTeacherTeachingStyle.js",
+    "students:update-style": "node scripts/updateStudentLearningStyle.js",
     "teacher:insights": "node scripts/generateTeacherInsights.js"
   },
   "dependencies": {

@@ -85,7 +85,7 @@ export default function SignupPage({
         setMessage("Account created successfully. Redirecting...");
       } else {
         setMessage(
-          "Account created. Please check your email to confirm your account, then sign in to finish setup."
+          "Account created. Check your email to confirm your account, then sign in to finish setup."
         );
       }
 
@@ -112,10 +112,10 @@ export default function SignupPage({
       <main className="exp-auth-main">
         <section className="exp-auth-hero">
           <div className="exp-auth-copy">
-            <h1>Start bright, stay curious.</h1>
+            <h1>Create your account.</h1>
             <p>
-              Create a learning profile that feels soft, focused, and ready for
-              your next skill.
+              Set up a student or lecturer profile and continue into Syncra
+              Learn.
             </p>
           </div>
           <HeroArt />
@@ -124,7 +124,7 @@ export default function SignupPage({
         <section className="exp-frame exp-auth-card">
           <h2>Create Account</h2>
           <p className="exp-auth-card-subtitle">
-            Choose your role and join Syncra Learn.
+            Choose your role to continue.
           </p>
 
           <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
@@ -166,13 +166,13 @@ export default function SignupPage({
                   active={role === "student"}
                   onClick={() => setRole("student")}
                   label="Student"
-                  icon="🎓"
+                  // icon="S"
                 />
                 <RoleButton
                   active={role === "lecturer"}
                   onClick={() => setRole("lecturer")}
                   label="Lecturer"
-                  icon="🧑‍🏫"
+                  // icon="L"
                 />
               </div>
             </Field>
@@ -291,8 +291,8 @@ function HeroArt() {
       <div className="exp-art-dot one" />
       <div className="exp-art-dot two" />
       <div className="exp-art-dot three" />
-      <div className="exp-art-star">✦</div>
-      <div className="exp-art-chip">Learn more</div>
+      <div className="exp-art-star">*</div>
+      <div className="exp-art-chip">Learn</div>
     </div>
   );
 }
@@ -301,7 +301,7 @@ function AuthFooter() {
   return (
     <footer className="exp-auth-footer">
       <div className="exp-auth-footer-inner">
-        <span>© 2026 Syncra Learn. Built for lifelong learners.</span>
+        <span>{"\u00A9"} 2026 Syncra Learn. Built for lifelong learners.</span>
         <div className="exp-auth-footer-links">
           <span>Privacy Policy</span>
           <span>Terms of Service</span>
@@ -337,7 +337,7 @@ function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         type={show ? "text" : "password"}
-        placeholder="••••••••"
+        placeholder="********"
         autoComplete={autoComplete}
         className={`exp-input pr-16 ${invalid ? "border-rose-300" : ""}`}
       />

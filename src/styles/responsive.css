@@ -1,0 +1,292 @@
+@layer components {
+  @media (max-width: 1180px) {
+    .teacher-course-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .student-suggestion-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .student-settings-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .student-settings-learning-row {
+      grid-template-columns: 1fr;
+    }
+
+    .student-settings-learning-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .student-settings-learning-actions > button {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .student-preview-main {
+      grid-template-columns: 1fr;
+    }
+
+    .student-preview-curriculum {
+      width: 100%;
+      justify-self: stretch;
+    }
+
+    .teacher-analytics-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .teacher-analytics-chart-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 760px) {
+    .exp-auth-main {
+      grid-template-columns: minmax(0, 28rem) minmax(22rem, 25.75rem);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .exp-art-card {
+      display: block;
+    }
+
+    .student-onboarding-actions {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .student-benefits {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 759px) {
+    .course-preview-page,
+    .course-preview-page.is-sidebar-collapsed {
+      height: auto;
+      min-height: 100vh;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto minmax(18rem, 1fr);
+      grid-template-areas:
+        "topbar"
+        "sidebar"
+        "stage";
+      overflow: visible;
+    }
+
+    .course-preview-sidebar {
+      border-right: 0;
+      border-bottom: 1px solid rgba(174, 232, 216, 0.55);
+    }
+
+    .course-preview-lessons {
+      max-height: 18rem;
+    }
+
+    .course-preview-stage {
+      overflow: visible;
+    }
+
+    .teacher-dashboard-shell {
+      height: auto;
+      min-height: 100vh;
+      grid-template-columns: 1fr;
+      overflow: visible;
+    }
+
+    .teacher-sidebar {
+      position: relative;
+      height: auto;
+      min-height: auto;
+      border-radius: 0 0 1.7rem 1.7rem;
+      gap: 1.3rem;
+      padding: 1.1rem;
+    }
+
+    .teacher-dashboard-main {
+      display: block;
+      height: auto;
+      overflow: visible;
+    }
+
+    .teacher-sidebar-nav {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .teacher-sidebar-link {
+      flex: 1 1 9rem;
+    }
+
+    .teacher-create-button {
+      margin-top: 0;
+    }
+
+    .teacher-topbar {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "welcome"
+        "search"
+        "actions";
+      padding: 1rem;
+    }
+
+    .teacher-search {
+      justify-self: stretch;
+      width: 100%;
+    }
+
+    .teacher-topbar-actions {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .teacher-profile-chip {
+      border-left: 0;
+      padding-left: 0;
+    }
+
+    .teacher-profile-chip p,
+    .teacher-profile-chip span {
+      text-align: left;
+    }
+
+    .teacher-dashboard-empty {
+      overflow: visible;
+      min-height: 18rem;
+    }
+
+    .teacher-courses-page {
+      min-height: 0;
+      overflow: visible;
+      padding: 1.15rem;
+    }
+
+    .teacher-analytics-page {
+      padding: 1.15rem;
+    }
+
+    .teacher-analytics-header,
+    .teacher-analytics-detail-heading {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .teacher-analytics-header-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .teacher-analytics-view-tabs {
+      width: 100%;
+    }
+
+    .teacher-analytics-view-tabs button {
+      flex: 1;
+    }
+
+    .teacher-analytics-refresh {
+      width: 100%;
+    }
+
+    .teacher-analytics-stats,
+    .teacher-analytics-course-metrics,
+    .teacher-analytics-chart-grid,
+    .teacher-analytics-quiz-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .teacher-courses-header,
+    .teacher-courses-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .teacher-new-course-button {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .teacher-course-stats {
+      justify-content: flex-start;
+    }
+
+    .teacher-course-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .student-suggestion-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .student-settings-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .student-settings-profile-fields {
+      grid-template-columns: 1fr;
+    }
+
+    .student-course-preview-page {
+      gap: 1rem;
+    }
+
+    .student-preview-video-card {
+      border-radius: 1.35rem;
+      min-height: 14rem;
+    }
+
+    .student-preview-price-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .student-preview-lesson-card {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .student-preview-lesson-card > strong,
+    .student-preview-lesson-card > svg {
+      grid-column: 2;
+    }
+
+    .teacher-courses-footer span:last-child {
+      margin-left: 0;
+    }
+
+    .exp-auth-nav {
+      padding: 0.75rem 1rem;
+    }
+
+    .exp-auth-cta {
+      padding: 0.5rem 0.85rem;
+    }
+
+    .exp-auth-page {
+      padding-bottom: 0;
+    }
+
+    .student-onboarding-nav {
+      padding: 0.75rem 1rem;
+    }
+
+    .student-onboarding-main {
+      width: min(100% - 1rem, 70rem);
+      padding-top: 1.5rem;
+    }
+
+    .student-onboarding-card {
+      border-radius: 1.25rem;
+      padding: 1.15rem 1rem;
+    }
+
+    .student-onboarding-icon {
+      width: 3.25rem;
+      height: 3.25rem;
+      margin-bottom: 1rem;
+    }
+  }
+}

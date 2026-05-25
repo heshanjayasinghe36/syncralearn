@@ -1,0 +1,497 @@
+@layer components {
+  .teacher-courses-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: auto;
+    padding-top: 2rem;
+    color: #778397;
+    font-size: 0.8rem;
+    font-weight: 650;
+  }
+
+  .teacher-courses-footer span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .teacher-courses-footer span:last-child {
+    margin-left: auto;
+  }
+
+  .teacher-courses-footer svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .teacher-course-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    background: rgba(10, 18, 22, 0.42);
+    padding: 1rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .teacher-course-modal {
+    width: min(100%, 28rem);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    overflow-x: visible;
+    border: 1px solid var(--exp-border);
+    border-top: 4px solid #20b9aa;
+    border-radius: 1.45rem;
+    background: rgba(255, 255, 255, 0.94);
+    padding: 1.15rem;
+    box-shadow: 0 26px 70px rgba(15, 37, 34, 0.22);
+  }
+
+  .teacher-quiz-modal {
+    width: min(100%, 48rem);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    border: 1px solid var(--exp-border);
+    border-top: 4px solid #20b9aa;
+    border-radius: 1.45rem;
+    background: rgba(255, 255, 255, 0.94);
+    padding: 1.15rem;
+    box-shadow: 0 26px 70px rgba(15, 37, 34, 0.22);
+  }
+
+  .dark .teacher-course-modal {
+    border-color: rgba(115, 226, 211, 0.28);
+    background: rgba(18, 31, 38, 0.96);
+  }
+
+  .dark .teacher-quiz-modal {
+    border-color: rgba(115, 226, 211, 0.28);
+    background: rgba(18, 31, 38, 0.96);
+  }
+
+  .teacher-course-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .teacher-course-modal-header p {
+    color: #008b7d;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .teacher-course-modal-header h3 {
+    margin-top: 0.18rem;
+    color: #111827;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+
+  .dark .teacher-course-modal-header h3 {
+    color: #f8fbff;
+  }
+
+  .teacher-course-modal-header button {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border-radius: 999px;
+    color: #56636f;
+  }
+
+  .teacher-course-modal-header button:hover {
+    background: rgba(0, 182, 159, 0.1);
+    color: #006e64;
+  }
+
+  .teacher-course-modal-header svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .teacher-quiz-main-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.34fr);
+    gap: 0.85rem;
+  }
+
+  .teacher-quiz-questions {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+
+  .teacher-quiz-question-card {
+    border: 1px solid rgba(210, 229, 228, 0.76);
+    border-radius: 1.2rem;
+    background: rgba(240, 248, 246, 0.64);
+    padding: 0.9rem;
+  }
+
+  .dark .teacher-quiz-question-card {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .teacher-quiz-question-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+
+  .teacher-quiz-question-head span {
+    color: #008b7d;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .teacher-quiz-question-head p {
+    margin-top: 0.16rem;
+    color: #667286;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  .teacher-quiz-question-head button {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border-radius: 999px;
+    color: #7b8798;
+  }
+
+  .teacher-quiz-question-head button:hover:not(:disabled) {
+    background: rgba(244, 63, 94, 0.1);
+    color: #9f1239;
+  }
+
+  .teacher-quiz-question-head button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .teacher-quiz-question-head svg {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+
+  .teacher-quiz-options {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 0.75rem;
+  }
+
+  .teacher-quiz-option-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .teacher-quiz-option-row > input[type="radio"] {
+    width: 1.05rem;
+    height: 1.05rem;
+    accent-color: #20b9aa;
+  }
+
+  .teacher-quiz-option-row > span {
+    display: grid;
+    width: 1.95rem;
+    height: 1.95rem;
+    place-items: center;
+    border-radius: 0.72rem;
+    background: #dff7ef;
+    color: #166b5d;
+    font-size: 0.72rem;
+    font-weight: 900;
+  }
+
+  .teacher-quiz-option-row > input[type="text"] {
+    width: 100%;
+    height: 2.7rem;
+    border: 1px solid rgba(210, 229, 228, 0.78);
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.82);
+    padding: 0.58rem 0.75rem;
+    color: #17231f;
+    font-size: 0.84rem;
+    font-weight: 700;
+    outline: none;
+  }
+
+  .teacher-quiz-option-row > input[type="text"]:focus {
+    border-color: rgba(32, 185, 170, 0.46);
+    box-shadow: 0 0 0 4px rgba(32, 185, 170, 0.1);
+  }
+
+  .teacher-quiz-option-row > button {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border-radius: 999px;
+    color: #7b8798;
+  }
+
+  .teacher-quiz-option-row > button:hover:not(:disabled) {
+    background: rgba(244, 63, 94, 0.1);
+    color: #9f1239;
+  }
+
+  .teacher-quiz-option-row > button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .teacher-quiz-option-row svg {
+    width: 0.9rem;
+    height: 0.9rem;
+  }
+
+  .dark .teacher-quiz-option-row > span {
+    background: rgba(115, 226, 211, 0.12);
+    color: #b7f4e6;
+  }
+
+  .dark .teacher-quiz-option-row > input[type="text"] {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8fbff;
+  }
+
+  .teacher-quiz-soft-action,
+  .teacher-quiz-add-question {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 850;
+  }
+
+  .teacher-quiz-soft-action {
+    margin-top: 0.75rem;
+    background: rgba(229, 246, 241, 0.78);
+    padding: 0.48rem 0.72rem;
+    color: #315f55;
+  }
+
+  .teacher-quiz-add-question {
+    margin-top: 0.9rem;
+    background: #e8f7f3;
+    padding: 0.62rem 0.85rem;
+    color: #176b5f;
+  }
+
+  .teacher-quiz-soft-action:hover,
+  .teacher-quiz-add-question:hover {
+    background: rgba(32, 185, 170, 0.14);
+    color: #006e64;
+  }
+
+  .teacher-quiz-soft-action svg,
+  .teacher-quiz-add-question svg {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+
+  .dark .teacher-quiz-soft-action,
+  .dark .teacher-quiz-add-question {
+    background: rgba(115, 226, 211, 0.12);
+    color: #b7f4e6;
+  }
+
+  .teacher-course-form-field {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.85rem;
+  }
+
+  .teacher-course-form-field span {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #17231f;
+    font-size: 0.82rem;
+    font-weight: 750;
+  }
+
+  .dark .teacher-course-form-field span {
+    color: #f5fbf8;
+  }
+
+  .teacher-course-form-field small {
+    color: #7b8798;
+    font-size: 0.72rem;
+    font-weight: 650;
+  }
+
+  .teacher-course-form-field input,
+  .teacher-course-form-field textarea {
+    width: 100%;
+    border: 1px solid rgba(210, 229, 228, 0.78);
+    border-radius: 1rem;
+    background: rgba(240, 244, 246, 0.9);
+    padding: 0.72rem 0.85rem;
+    color: #111827;
+    font-size: 0.9rem;
+    font-weight: 600;
+    outline: none;
+  }
+
+  .teacher-course-form-field textarea {
+    resize: vertical;
+  }
+
+  .teacher-course-form-field input:focus,
+  .teacher-course-form-field textarea:focus {
+    border-color: rgba(0, 182, 159, 0.42);
+    box-shadow: 0 0 0 4px rgba(0, 182, 159, 0.1);
+  }
+
+  .dark .teacher-course-form-field input,
+  .dark .teacher-course-form-field textarea {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f8fbff;
+  }
+
+  .teacher-course-file-input::file-selector-button {
+    margin-right: 0.75rem;
+    border: 0;
+    border-radius: 999px;
+    background: #347464;
+    padding: 0.45rem 0.75rem;
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .teacher-course-file-input:hover::file-selector-button {
+    background: #2c6255;
+  }
+
+  .teacher-course-file-name {
+    margin-top: 0.4rem;
+    color: #667286;
+    font-size: 0.76rem;
+    font-weight: 650;
+  }
+
+  .dark .teacher-course-file-name {
+    color: rgba(245, 251, 248, 0.6);
+  }
+
+  .teacher-level-select {
+    position: relative;
+  }
+
+  .teacher-level-select .student-select-trigger {
+    min-height: 2.65rem;
+    border: 1px solid rgba(210, 229, 228, 0.78);
+    background: rgba(240, 244, 246, 0.9);
+    padding: 0.62rem 0.85rem;
+    font-size: 0.9rem;
+  }
+
+  .dark .teacher-level-select .student-select-trigger {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .teacher-level-menu {
+    top: auto;
+    bottom: calc(100% + 0.5rem);
+    z-index: 90;
+    max-height: 11.5rem;
+    overflow-y: auto;
+    padding: 0.4rem;
+    border-radius: 0.95rem;
+  }
+
+  .teacher-level-menu .student-select-group {
+    padding: 0.25rem 0.5rem 0.05rem;
+    font-size: 0.62rem;
+  }
+
+  .teacher-level-option {
+    align-items: center;
+    gap: 0.55rem;
+    border-radius: 0.75rem;
+    padding: 0.48rem 0.5rem;
+  }
+
+  .teacher-level-option .student-select-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.65rem;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 0.65rem;
+    font-size: 0.66rem;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .teacher-course-modal-message {
+    margin-top: 0.85rem;
+    border-radius: 0.9rem;
+    background: #fff7ed;
+    padding: 0.68rem 0.8rem;
+    color: #9a3412;
+    font-size: 0.82rem;
+    font-weight: 650;
+  }
+
+  .dark .teacher-course-modal-message {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd38b;
+  }
+
+  .teacher-course-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    margin-top: 1.1rem;
+  }
+
+  .teacher-course-modal-actions button {
+    border-radius: 999px;
+    padding: 0.68rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 800;
+  }
+
+  .teacher-course-modal-actions button:first-child {
+    background: #eceff1;
+    color: #111827;
+  }
+
+  .teacher-course-modal-actions button:last-child {
+    background: #347464;
+    color: #ffffff;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+  }
+
+  .teacher-course-modal-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+    box-shadow: none;
+  }
+
+}

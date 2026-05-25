@@ -215,7 +215,7 @@ export default function App() {
         setStudentProfile(null);
         setTeacherProfile(null);
         setAuthNotice(
-          "This Google account is not linked yet. Please create an account first."
+          "This Google account is not linked yet. Create an account first."
         );
         setPage("signup");
         setProfileLoading(false);
@@ -355,7 +355,6 @@ export default function App() {
             theme={theme}
             onToggleTheme={toggleTheme}
             onCompleted={refreshStudentProfile}
-            onSignOut={handleSignOut}
           />
         ) : userRole === "lecturer" && !teacherProfile ? (
           <TeacherOnboarding

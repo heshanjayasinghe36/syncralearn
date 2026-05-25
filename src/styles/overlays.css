@@ -1,0 +1,321 @@
+@layer components {
+.student-notification-menu-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 2.9rem;
+  padding-left: 0.8rem;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  border-radius: 999px;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 850;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+.student-notification-menu {
+  position: absolute;
+  top: calc(100% + 0.7rem);
+  right: 0;
+  z-index: 35;
+  display: grid;
+  min-width: 22rem;
+  gap: 0.2rem;
+  border: 1px solid rgba(210, 229, 228, 0.82);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 0.55rem;
+  box-shadow: 0 18px 42px rgba(37, 75, 68, 0.16);
+}
+
+.student-notification-item {
+  display: grid;
+  gap: 0.75rem;
+  border-radius: 0.8rem;
+  padding: 0.75rem;
+  background: none;
+  transition: background-color 180ms ease;
+}
+
+.student-notification-item:hover {
+  background: rgba(0, 182, 159, 0.08);
+}
+
+.student-notification-item.unread {
+  background: rgba(251, 191, 36, 0.08);
+  border-left: 3px solid #fbbf24;
+}
+
+.student-notification-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.student-notification-item-body:hover {
+  background: transparent;
+}
+
+.student-notification-item-body strong {
+  display: block;
+  color: #17231f;
+  font-size: 0.86rem;
+  font-weight: 850;
+  margin: 0;
+}
+
+.student-notification-item-body p {
+  margin: 0;
+  color: #65746f;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
+}
+
+.student-notification-clear {
+  justify-self: end;
+  align-self: start;
+  border: 1px solid rgba(210, 229, 228, 0.82);
+  background: none;
+  border-radius: 0.75rem;
+  padding: 0.45rem 0.85rem;
+  color: #215c51;
+  font-size: 0.75rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+.student-notification-clear:hover {
+  background: rgba(0, 182, 159, 0.08);
+  border-color: rgba(0, 182, 159, 0.2);
+}
+
+.student-notification-menu button p {
+  margin: 0;
+  color: #65746f;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
+}
+
+.student-notification-menu > p {
+  padding: 1rem;
+  margin: 0;
+  color: #65746f;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.dark .student-notification-menu {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(18, 31, 38, 0.98);
+}
+
+.dark .student-notification-menu button {
+  color: #b7f4e6;
+}
+
+.dark .student-notification-menu button:hover {
+  background: rgba(115, 226, 211, 0.12);
+}
+
+.dark .student-notification-menu button.unread {
+  background: rgba(245, 158, 11, 0.1);
+  border-left-color: #fbbf24;
+}
+
+.dark .student-notification-menu button strong {
+  color: #f8fbff;
+}
+
+.dark .student-notification-menu button p {
+  color: rgba(245, 251, 248, 0.62);
+}
+
+.dark .student-notification-menu p {
+  color: rgba(245, 251, 248, 0.62);
+}
+
+.review-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.review-popup {
+  border: 1px solid rgba(210, 229, 228, 0.82);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 1.5rem;
+  max-width: 28rem;
+  width: 90%;
+  box-shadow: 0 24px 52px rgba(37, 75, 68, 0.16);
+}
+
+.review-popup h3 {
+  margin: 0 0 1rem 0;
+  color: #17231f;
+  font-size: 1.1rem;
+  font-weight: 850;
+  text-align: center;
+}
+
+.review-rating {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.review-rating button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #d1d5db;
+  transition: all 180ms ease;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+}
+
+.review-rating button:hover {
+  color: #fbbf24;
+  transform: scale(1.1);
+}
+
+.review-rating button.active {
+  color: #fbbf24;
+}
+
+.review-popup textarea {
+  width: 100%;
+  min-height: 6rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(210, 229, 228, 0.72);
+  border-radius: 0.8rem;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: #17231f;
+  background: rgba(233, 248, 243, 0.4);
+  margin-bottom: 1.25rem;
+  transition: border-color 180ms ease;
+}
+
+.review-popup textarea:focus {
+  outline: none;
+  border-color: rgba(0, 156, 139, 0.42);
+  background: rgba(233, 248, 243, 0.6);
+}
+
+.review-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.review-actions button {
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.78rem;
+  font-weight: 850;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 180ms ease;
+  border: 1px solid rgba(210, 229, 228, 0.72);
+}
+
+.review-actions button:first-child {
+  background: none;
+  color: #65746f;
+}
+
+.review-actions button:first-child:hover {
+  background: rgba(233, 248, 243, 0.4);
+  border-color: rgba(0, 156, 139, 0.3);
+}
+
+.review-actions button:last-child {
+  background: linear-gradient(145deg, #20b9aa, #008b7d);
+  border-color: #20b9aa;
+  color: white;
+  box-shadow: 0 4px 12px rgba(32, 185, 170, 0.3);
+}
+
+.review-actions button:last-child:hover {
+  background: linear-gradient(145deg, #008b7d, #006e64);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(32, 185, 170, 0.4);
+}
+
+.dark .review-popup {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(18, 31, 38, 0.98);
+}
+
+.dark .review-popup h3 {
+  color: #f8fbff;
+}
+
+.dark .review-popup textarea {
+  background: rgba(115, 226, 211, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fbff;
+}
+
+.dark .review-popup textarea:focus {
+  background: rgba(115, 226, 211, 0.12);
+  border-color: rgba(115, 226, 211, 0.3);
+}
+
+.dark .review-actions button:first-child {
+  color: rgba(245, 251, 248, 0.62);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark .review-actions button:first-child:hover {
+  background: rgba(115, 226, 211, 0.08);
+  border-color: rgba(115, 226, 211, 0.2);
+}
+
+.dark .review-actions button:last-child {
+  background: linear-gradient(145deg, #20b9aa, #008b7d);
+  border-color: #20b9aa;
+}
+
+}

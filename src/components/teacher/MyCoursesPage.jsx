@@ -112,7 +112,7 @@ export default function MyCoursesPage({
 
         if (!error) {
           setMessage(
-            "Courses loaded, but intro_vid_url was not found in the course table."
+            "Courses loaded. Intro videos are unavailable right now."
           );
         }
       }
@@ -464,7 +464,7 @@ export default function MyCoursesPage({
         ) : (
           <p className="teacher-course-empty">
             {activeCourseTab === "all"
-              ? "No courses yet. Create a course to see it here."
+              ? "No courses yet."
               : `No ${activeCourseTab} courses found.`}
           </p>
         )}
@@ -516,7 +516,7 @@ export default function MyCoursesPage({
                 value={courseName}
                 onChange={(event) => setCourseName(event.target.value)}
                 type="text"
-                placeholder="e.g. Introduction to AI"
+                placeholder="e.g. Data Fundamentals"
                 disabled={saving}
                 autoFocus
               />

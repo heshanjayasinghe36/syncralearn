@@ -6,25 +6,25 @@ export const VARK_OPTION_GROUPS = [
         value: "visual",
         label: "Visual",
         badge: "V",
-        description: "Use this for Mild, Strong, or Very Strong Visual VARK results.",
+        description: "Visual preference",
       },
       {
         value: "aural",
         label: "Aural",
         badge: "A",
-        description: "Use this for Mild, Strong, or Very Strong Aural VARK results.",
+        description: "Aural preference",
       },
       {
         value: "read_write",
         label: "Read/write",
         badge: "R",
-        description: "Use this for Mild, Strong, or Very Strong Read/write VARK results.",
+        description: "Read/write preference",
       },
       {
         value: "kinesthetic",
         label: "Kinesthetic",
         badge: "K",
-        description: "Use this for Mild, Strong, or Very Strong Kinesthetic VARK results.",
+        description: "Kinesthetic preference",
       },
     ],
   },
@@ -105,7 +105,7 @@ export const VARK_OPTION_GROUPS = [
         value: "vark",
         label: "VARK",
         badge: "VARK",
-        description: "Use this for VARK, VARK Selective, or VARK Integrative results.",
+        description: "All four preferences",
       },
     ],
   },
@@ -123,6 +123,13 @@ const STYLE_LABELS = {
   "read-write": "Read/Write",
   kinesthetic: "Kinesthetic",
 };
+
+const INFERRED_STYLE_OPTIONS = [
+  { key: "visual", value: "visual", code: "v" },
+  { key: "aural", value: "aural", code: "a" },
+  { key: "read-write", value: "read_write", code: "r" },
+  { key: "kinesthetic", value: "kinesthetic", code: "k" },
+];
 
 const VARK_STYLE_KEYS = {
   v: ["visual"],
@@ -292,6 +299,34 @@ export function getVarkStyleKeys(value = "") {
   }
 
   return styleKeys;
+}
+
+export function inferVarkPreferenceFromStyles(styles = []) {
+  const counts = Object.fromEntries(
+    INFERRED_STYLE_OPTIONS.map(({ key }) => [key, 0])
+  );
+
+  for (const style of styles) {
+    for (const styleKey of getVarkStyleKeys(style)) {
+      counts[styleKey]++;
+    }
+  }
+
+  const maximumCount = Math.max(...Object.values(counts));
+
+  if (maximumCount === 0) {
+    return "";
+  }
+
+  const preferredStyles = INFERRED_STYLE_OPTIONS.filter(
+    ({ key }) => counts[key] === maximumCount
+  );
+
+  if (preferredStyles.length === 1) {
+    return preferredStyles[0].value;
+  }
+
+  return preferredStyles.map(({ code }) => code).join("");
 }
 
 export function getVarkStyleLabel(value) {
